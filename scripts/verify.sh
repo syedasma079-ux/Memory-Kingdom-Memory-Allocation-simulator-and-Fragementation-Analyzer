@@ -24,6 +24,11 @@ export PATH="$HOME/.local/bin:$PATH"
 (cd backend/api && npm test)
 (cd backend/api && npx tsx scripts/drive-assignment.ts)
 
+echo ">>> 5. Verifying React frontend (typecheck, unit tests, build)..."
+(cd frontend && npm install --no-fund --no-audit)
+(cd frontend && npm test)
+(cd frontend && npm run build)
+
 echo "=========================================="
 echo " ALL VERIFICATION CHECKS PASSED           "
 echo "=========================================="

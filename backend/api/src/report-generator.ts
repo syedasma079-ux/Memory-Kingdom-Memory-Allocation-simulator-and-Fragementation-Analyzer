@@ -63,3 +63,4 @@ export function generateReport(session: Session, snapshot: EngineSnapshot, forma
   }
   return md;
 }
+

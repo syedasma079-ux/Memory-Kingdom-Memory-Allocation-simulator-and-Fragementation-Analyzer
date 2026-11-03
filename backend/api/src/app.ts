@@ -190,3 +190,4 @@ export function createApp(sessionManager: SessionManager = new SessionManager())
 
   return { app, sessionManager };
 }
+

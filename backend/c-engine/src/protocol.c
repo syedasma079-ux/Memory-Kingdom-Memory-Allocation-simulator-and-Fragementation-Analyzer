@@ -293,6 +293,41 @@ int protocolProcessLine(ProtocolSession *ps, const char *line, FILE *outStream) 
         } else {
             fprintf(outStream, "{\"type\":\"reply\",\"id\":%d,\"ok\":false,\"error\":\"Process or offset not found\"}\n", id);
         }
+    } else if (strcmp(cmd, "arena.loadLayout") == 0) {
+        int sizes[128];
+        int allocated[128];
+        int count = 0;
+        const char *blocks = strstr(line, "\"blocks\"");
+        const char *p = blocks ? strchr(blocks, '[') : NULL;
+        while (p != NULL && *p != '\0' && *p != ']' && count < 128) {
+            const char *obj = strchr(p, '{');
+            const char *arrEnd = strchr(p, ']');
+            if (obj == NULL || (arrEnd != NULL && arrEnd < obj)) {
+                break;
+            }
+            int size = 0;
+            int allocFlag = 0;
+            extractIntField(obj, "size", &size);
+            extractIntField(obj, "allocated", &allocFlag);
+            sizes[count] = size;
+            allocated[count] = allocFlag;
+            count++;
+            p = strchr(obj, '}');
+            if (p == NULL) {
+                break;
+            }
+            p++;
+        }
+        if (count <= 0) {
+            fprintf(outStream, "{\"type\":\"reply\",\"id\":%d,\"ok\":false,\"error\":\"arena.loadLayout requires blocks\"}\n", id);
+        } else {
+            int rc = arenaLoadLayout(&ps->scheduler.arena, sizes, allocated, count);
+            if (rc == 0) {
+                fprintf(outStream, "{\"type\":\"reply\",\"id\":%d,\"ok\":true,\"data\":{\"blockCount\":%d}}\n", id, count);
+            } else {
+                fprintf(outStream, "{\"type\":\"reply\",\"id\":%d,\"ok\":false,\"error\":\"arenaLoadLayout failed (sum must equal total; no adjacent free blocks)\"}\n", id);
+            }
+        }
     } else if (strcmp(cmd, "compare.run") == 0) {
         PolicyCompareResult results[4];
         schedulerCompareRun(ps->scheduler.processes, ps->scheduler.processCount, &ps->scheduler.config, results);

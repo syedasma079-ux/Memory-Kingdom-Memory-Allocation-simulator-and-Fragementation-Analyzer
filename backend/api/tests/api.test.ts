@@ -174,3 +174,4 @@ describe('Phase 4: Node.js / Express API Integration Tests', () => {
     expect(getRes.status).toBe(404);
   });
 });
+

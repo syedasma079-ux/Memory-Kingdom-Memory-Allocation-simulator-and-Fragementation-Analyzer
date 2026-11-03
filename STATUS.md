@@ -1,6 +1,6 @@
 # MEMORY KINGDOM Project Status
 
-## Current Phase: Phase 5 (Functional Frontend)
+## Current Phase: Phase 6 (Game Layer)
 
 ### Phase Gates Progress
 - [x] **Phase 1: Engine Core** - **PASSED**
@@ -32,20 +32,30 @@
   - Full REST endpoints: sessions, commands, snapshots, reports (`json|md|csv`), 4-policy comparison, assignment dataset
   - Passthrough tests confirm zero allocation/split/merge recomputation in Node
   - Automated thin script (`scripts/drive-assignment.ts`) drives dataset through HTTP and reproduces G1, G2, G3
-- [ ] **Phase 5: Functional Frontend (10 Interactive Locations, Store, Pure Snapshots)**
-  - Vite + React + TypeScript + Tailwind
-  - Event-sourced store: snapshots, cursor, pure views
-  - `layoutBlocks(blocks, total)` proportional 2D realm mapping (8 rows of 128 MB)
-  - Technical view (offset ruler, linked-list diagram, process table)
-  - All 10 locations functional: Kingdom Overview, Memory Arena, Algorithm Guild, Process Tavern, Feedback Queue Castle, Fragmentation Dungeon, Royal Strategy Room, Quest Board, Simulation Chronicles, System Settings
-  - Navigation test visiting all 10 locations
+- [x] **Phase 5: Functional Frontend (10 Interactive Locations, Store, Pure Snapshots)** - **PASSED**
+  - Vite + React + TypeScript + Tailwind CSS
+  - Event-sourced Zustand store: pure snapshots from C engine, time-travel cursor, playback controls
+  - Pure proportional 2D realm mapping: `layoutBlocks(blocks, total)` (8 rows of 128 MB)
+  - All 10 locations fully functional and tested:
+    1. Kingdom Overview (realm summary, live mini-map, dragon threat preview, queue counters)
+    2. Memory Arena (proportional grid, pointer indicators, tooltips, offset ruler)
+    3. Algorithm Guild (First Fit, Next Fit, Best Fit, Worst Fit live comparative display)
+    4. Process Tavern (adventurers table with state badges, remaining bursts, memory requirements)
+    5. Feedback Castle (queues: Input, UserJob, Q1, Q2, Q3, running slot)
+    6. Fragmentation Dungeon (Dragon of Fragmentation: tier, power, cracks, free block stats)
+    7. Strategy Room (comparative radar/bar charts, side-by-side mid-run views)
+    8. Quest Board (4 interactive quests Q1-Q4 with presets loaded into C engine)
+    9. Chronicles (event log, filters, CSV/MD/JSON export)
+    10. System Settings (speed slider, step/run/reset, assumption toggles ASM-1 to ASM-12 clearly marked UNVERIFIED by default)
+  - Single-source-of-truth verified: zero recomputed allocation/split/merge logic in frontend
+  - Navigation integration test visiting all 10 locations passed
+  - API integration test verifying live G1 ($t=6$) and G2/G3 ($t=7$) passthrough passed
+  - Frontend TypeScript compile and Vite bundle passed with 0 errors
 - [ ] **Phase 6: Game Layer (16-bit SNES Pixel Art, Dragon Tiers, Solvable Quests)**
 - [ ] **Phase 7: Final Verification & Clean WSL2 Run**
 
 ### Next Steps
-Begin Phase 5:
-1. Initialize `frontend/` with Vite, React, TypeScript, Tailwind CSS, Lucide React, and Recharts.
-2. Implement pure proportional layout: `layoutBlocks(blocks, total)`.
-3. Implement event-sourced Zustand store rendering pure snapshots from engine.
-4. Implement all 10 locations and navigation router.
-5. Add frontend unit and navigation tests.
+Begin Phase 6: Game Layer:
+1. Refine 16-bit SNES pixel art styling across all 10 locations.
+2. Complete Dragon of Fragmentation visuals and audio cues / animations per tier.
+3. Validate and polish all 4 quest scenarios with clear victory conditions and solver checks.
