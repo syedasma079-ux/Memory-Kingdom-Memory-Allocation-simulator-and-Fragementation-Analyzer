@@ -10,6 +10,7 @@ import { ProcessTavern } from './pages/ProcessTavern';
 import { QuestBoard } from './pages/QuestBoard';
 import { StrategyRoom } from './pages/StrategyRoom';
 import { SystemSettings } from './pages/SystemSettings';
+import { SpritesDevPage } from './pages/SpritesDevPage';
 import { useSimStore } from './store/simStore';
 
 export default function App() {
@@ -58,6 +59,9 @@ export default function App() {
       break;
     case 'settings':
       page = <SystemSettings />;
+      break;
+    case 'sprites':
+      page = <SpritesDevPage />;
       break;
     default:
       page = <KingdomOverview />;

@@ -23,7 +23,8 @@ export const LOCATIONS: { id: LocationId; label: string }[] = [
   { id: 'strategy', label: 'Royal Strategy Room' },
   { id: 'quests', label: 'Quest and Challenge Board' },
   { id: 'chronicles', label: 'Simulation Chronicles' },
-  { id: 'settings', label: 'System Settings' }
+  { id: 'settings', label: 'System Settings' },
+  { id: 'sprites', label: 'Sprite Atlas (Dev)' }
 ];
 
 const defaultConfig: SessionConfig = {

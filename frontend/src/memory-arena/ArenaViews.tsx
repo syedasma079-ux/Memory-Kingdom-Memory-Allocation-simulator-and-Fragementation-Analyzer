@@ -3,6 +3,17 @@ import { layoutBlocks } from './layoutBlocks';
 import { useSimStore } from '../store/simStore';
 import { cn } from '../lib/cn';
 
+function getDecorationGlyph(offset: number, size: number, allocated: boolean): string {
+  const hash = ((offset * 2654435761) ^ (size * 2246822519)) >>> 0;
+  if (allocated) {
+    const allocIcons = ['🏰', '🏘️', '🚩', '🛖'];
+    return allocIcons[hash % allocIcons.length];
+  } else {
+    const freeIcons = ['🌲', '🌿', '🌾', '🪨', '🌸'];
+    return freeIcons[hash % freeIcons.length];
+  }
+}
+
 export function RealmMap() {
   const snap = useSimStore((s) => s.getSnapshot());
   const selected = useSimStore((s) => s.selectedBlockIndex);
@@ -50,8 +61,9 @@ export function RealmMap() {
               onClick={() => setSelected(t.blockIndex)}
             >
               {t.size >= 8 ? (
-                <span className="p-0.5">
-                  {t.allocated ? `P${t.pid}` : 'free'} {t.size}
+                <span className="p-0.5 flex items-center gap-0.5">
+                  <span className="text-[9px]">{getDecorationGlyph(t.offset, t.size, t.allocated)}</span>
+                  <span>{t.allocated ? `P${t.pid}` : 'free'} {t.size}</span>
                 </span>
               ) : null}
             </button>

@@ -1,6 +1,15 @@
 import type { Policy } from '../types/engine';
 import { useSimStore } from '../store/simStore';
 import { cn } from '../lib/cn';
+import { drawSprite } from '../game/spriteAtlas';
+import { useEffect, useRef } from 'react';
+
+const GUILD_SPRITES: Record<Policy, string> = {
+  first_fit: 'guild_swift_rangers',
+  best_fit: 'guild_precision_architects',
+  next_fit: 'guild_wandering_knights',
+  worst_fit: 'guild_giant_keepers'
+};
 
 const GUILDS: {
   policy: Policy;
@@ -80,10 +89,15 @@ export function AlgorithmGuild() {
             )}
             data-testid={`guild-card-${g.policy}`}
           >
-            <h3 className="font-pixel text-[10px] text-gold-3">{g.name}</h3>
-            <p className="mt-1 text-[10px] uppercase text-stone-2">
-              {g.policy.replace('_', ' ')} · {g.theme}
-            </p>
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h3 className="font-pixel text-[10px] text-gold-3">{g.name}</h3>
+                <p className="mt-1 text-[10px] uppercase text-stone-2">
+                  {g.policy.replace('_', ' ')} · {g.theme}
+                </p>
+              </div>
+              <GuildEmblem spriteId={GUILD_SPRITES[g.policy]} />
+            </div>
             <p className="mt-2 text-xs">{g.explanation}</p>
             <p className="mt-1 text-xs text-stone-2">Search: {g.search}</p>
             <p className="mt-1 text-xs text-grass-3">+ {g.advantages}</p>
@@ -109,5 +123,27 @@ export function AlgorithmGuild() {
         ))}
       </div>
     </section>
+  );
+}
+
+function GuildEmblem({ spriteId }: { spriteId: string }) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    canvas.width = 48;
+    canvas.height = 48;
+    ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0, 0, 48, 48);
+    drawSprite(ctx, spriteId, 0, 0, 2);
+  }, [spriteId]);
+
+  return (
+    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded border border-ink-3 bg-ink-0">
+      <canvas ref={canvasRef} className="pixelated" />
+    </div>
   );
 }

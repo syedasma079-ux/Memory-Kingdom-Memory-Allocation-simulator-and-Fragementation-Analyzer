@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from pathlib import Path
 
-path = Path("/mnt/c/Users/ramit/Downloads/MEMORY KINGDOM Master Build Prompt v3.pdf")
+path = Path("/mnt/c/Users/ramit/.gemini/antigravity/brain/0f7d840b-946d-4007-b9ca-d8c034b605ad/.user_uploaded/media_1793697194253_9dc324ca.pdf")
 try:
     from pypdf import PdfReader
 

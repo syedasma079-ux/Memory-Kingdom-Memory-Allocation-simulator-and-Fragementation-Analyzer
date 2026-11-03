@@ -18,7 +18,8 @@ export type LocationId =
   | 'strategy'
   | 'quests'
   | 'chronicles'
-  | 'settings';
+  | 'settings'
+  | 'sprites';
 
 export interface SessionConfig {
   policy: Policy;

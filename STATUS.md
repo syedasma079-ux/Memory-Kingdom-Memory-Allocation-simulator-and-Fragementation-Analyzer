@@ -1,6 +1,6 @@
 # MEMORY KINGDOM Project Status
 
-## Current Phase: Phase 6 (Game Layer)
+## Current Phase: Phase 7 (Final Verification & Clean WSL2 Run)
 
 ### Phase Gates Progress
 - [x] **Phase 1: Engine Core** - **PASSED**
@@ -36,26 +36,25 @@
   - Vite + React + TypeScript + Tailwind CSS
   - Event-sourced Zustand store: pure snapshots from C engine, time-travel cursor, playback controls
   - Pure proportional 2D realm mapping: `layoutBlocks(blocks, total)` (8 rows of 128 MB)
-  - All 10 locations fully functional and tested:
-    1. Kingdom Overview (realm summary, live mini-map, dragon threat preview, queue counters)
-    2. Memory Arena (proportional grid, pointer indicators, tooltips, offset ruler)
-    3. Algorithm Guild (First Fit, Next Fit, Best Fit, Worst Fit live comparative display)
-    4. Process Tavern (adventurers table with state badges, remaining bursts, memory requirements)
-    5. Feedback Castle (queues: Input, UserJob, Q1, Q2, Q3, running slot)
-    6. Fragmentation Dungeon (Dragon of Fragmentation: tier, power, cracks, free block stats)
-    7. Strategy Room (comparative radar/bar charts, side-by-side mid-run views)
-    8. Quest Board (4 interactive quests Q1-Q4 with presets loaded into C engine)
-    9. Chronicles (event log, filters, CSV/MD/JSON export)
-    10. System Settings (speed slider, step/run/reset, assumption toggles ASM-1 to ASM-12 clearly marked UNVERIFIED by default)
+  - All 10 locations fully functional and tested
   - Single-source-of-truth verified: zero recomputed allocation/split/merge logic in frontend
   - Navigation integration test visiting all 10 locations passed
   - API integration test verifying live G1 ($t=6$) and G2/G3 ($t=7$) passthrough passed
   - Frontend TypeScript compile and Vite bundle passed with 0 errors
-- [ ] **Phase 6: Game Layer (16-bit SNES Pixel Art, Dragon Tiers, Solvable Quests)**
+- [x] **Phase 6: Game Layer (16-bit SNES Pixel Art, Dragon Tiers, Solvable Quests)** - **PASSED**
+  - Strict 32-color fixed palette across 8 ramps (ink, grass, water, stone, earth, gold, ember, magic)
+  - In-repo pixel art sprite pipeline: character grids compiled into offscreen canvases (`spriteData.ts`, `spriteAtlas.ts`)
+  - All required sprite sets: terrain, territory, adventurer classes (warrior, mage, rogue, cleric), guild themes, dungeon elements
+  - Dragon of Fragmentation: 5 visual power tiers (Sleeping, Stirring, Awake, Enraged, Inferno) driven directly by engine stats
+  - Cinematic Landing Scene (480x270 internal resolution, castle, river, forest, coiled dragon on tower, skippable $\le$ 1.2s enter transition)
+  - Dedicated `/sprites` developer inspection page with category filters and scaling
+  - Deterministic decorative placement on memory territories (hash of offset and size)
+  - All 6 quests (Q1 to Q6) verified solvable with scripted command sequence unit tests
+  - Reduced-motion accessibility supported throughout
 - [ ] **Phase 7: Final Verification & Clean WSL2 Run**
 
 ### Next Steps
-Begin Phase 6: Game Layer:
-1. Refine 16-bit SNES pixel art styling across all 10 locations.
-2. Complete Dragon of Fragmentation visuals and audio cues / animations per tier.
-3. Validate and polish all 4 quest scenarios with clear victory conditions and solver checks.
+Begin Phase 7: Final Verification & Clean WSL2 Run:
+1. Complete final documentation updates in `README.md`, `docs/architecture.md`, `docs/algorithms.md`, `docs/memory-management.md`, `docs/scheduler.md`, `docs/assumptions.md`, `docs/user-guide.md`, `docs/decisions.md`, and `docs/limitations.md`.
+2. Verify clean clone and build procedures on WSL2 Ubuntu.
+3. Ensure Definition of Done criteria are 100% satisfied.

@@ -1,4 +1,5 @@
 import { useSimStore } from '../store/simStore';
+import { DragonCanvas } from '../game/DragonCanvas';
 
 const TIER_NAMES = ['Sleeping', 'Stirring', 'Awake', 'Enraged', 'Inferno'] as const;
 
@@ -17,6 +18,13 @@ export function FragmentationDungeon() {
           Dragon power equals engine externalFragmentation. Tiers and cracks come from the C engine.
         </p>
       </header>
+
+      {/* Visual Animated Dragon */}
+      <DragonCanvas
+        tier={st?.dragonTier ?? 0}
+        power={st?.dragonPower ?? 0}
+        cracks={st?.cracks ?? 0}
+      />
 
       {st ? (
         <div className="panel grid gap-3 p-4 md:grid-cols-3" data-testid="dungeon-stats">

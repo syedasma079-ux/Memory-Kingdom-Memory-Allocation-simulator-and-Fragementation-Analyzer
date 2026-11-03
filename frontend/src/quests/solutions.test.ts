@@ -74,6 +74,29 @@ describe('quest scripted solutions', () => {
     expect(q2.isComplete({ events: [], snapshot: snap })).toBe(true);
   });
 
+  it('Q3 completes when prediction is confirmed correct', () => {
+    const q3 = QUESTS.find((q) => q.id === 'q3')!;
+    expect(q3.isComplete({ events: [], snapshot: null, flags: { predictionCorrect: true } })).toBe(true);
+    expect(q3.isComplete({ events: [], snapshot: null, flags: { predictionCorrect: false } })).toBe(false);
+  });
+
+  it('Q4 completes when engine emits alloc_failed event', () => {
+    const q4 = QUESTS.find((q) => q.id === 'q4')!;
+    const failEvent = {
+      seq: 1,
+      t: 1,
+      kind: 'alloc_failed' as const,
+      data: { pid: 9, size: 150, reason: 'NO_CONTIGUOUS_BLOCK' }
+    };
+    expect(q4.isComplete({ events: [failEvent], snapshot: null })).toBe(true);
+    expect(q4.isComplete({ events: [], snapshot: null })).toBe(false);
+  });
+
+  it('Q5 completes when two Next Fit allocations are performed', () => {
+    const q5 = QUESTS.find((q) => q.id === 'q5')!;
+    expect(q5.isComplete({ events: [], snapshot: null, flags: { twoNextFitAllocs: true } })).toBe(true);
+  });
+
   it('Q6 completes when engine externalFragmentation drops by >= 10', () => {
     const q6 = QUESTS.find((q) => q.id === 'q6')!;
     const snap = emptySnap({

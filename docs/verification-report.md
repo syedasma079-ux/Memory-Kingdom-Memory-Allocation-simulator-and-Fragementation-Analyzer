@@ -175,3 +175,75 @@ dist/assets/index-DGjDfPf9.js                                      582.96 kB │
 ```
 
 ### Gate 5 Status: PASSED
+
+
+---
+
+## Phase 6: Game Layer (16-bit SNES Pixel Art, Dragon Tiers, Solvable Quests)
+
+### Gate Requirements:
+1. Strict 32-color palette adherence (8 ramps $\times$ 4 shades) across all sprite assets and UI kit.
+2. In-repo pixel art sprite pipeline: character grids committed to source (`spriteData.ts`), compiled into offscreen canvases (`spriteAtlas.ts`).
+3. Complete sprite sets: terrain, territory, adventurer classes (warrior, mage, rogue, cleric), guild themes, dungeon elements.
+4. Dragon of Fragmentation: 5 visual power tiers (Sleeping, Stirring, Awake, Enraged, Inferno) driven directly by engine statistics (`dragonPower`, `dragonTier`, `cracks`).
+5. 480x270 internal resolution Cinematic Landing Scene with castle, river, mountains, torches, and coiled dragon on watchtower ($\le$ 1.2s skippable transition).
+6. Dedicated `/sprites` developer inspection route and page with category filtering and integer scaling.
+7. Solvable quests Q1 to Q6 verified with scripted command sequence tests.
+8. Accessibility: `prefers-reduced-motion` and setting toggle disable animation loops and fast-forward state changes.
+9. All 10 locations functional in both WORLD and TECHNICAL modes.
+10. Global verification suite (`./scripts/verify.sh`) passes end-to-end with zero errors.
+
+### Verification Run Output:
+
+```
+==========================================
+ MEMORY KINGDOM: Global Verification Suite
+==========================================
+>>> 1. Verifying golden files against golden-lock...
+Golden lock check: PASSED (fixtures untouched)
+>>> 2. Single-source-of-truth verification...
+=== Running Single Source of Truth Checks ===
+Single source of truth checks PASSED.
+>>> 3. Compiling and verifying C Engine Core & Linux Mode...
+make: Entering directory '/home/ramita/projects/memory-kingdom/backend/c-engine'
+...
+All Phase 1, Phase 2, and Phase 3 checks passed successfully.
+>>> 4. Verifying Node.js / Express API...
+ RUN  v2.1.9 /home/ramita/projects/memory-kingdom/backend/api
+ ✓ tests/api.test.ts (10 tests) 562ms
+ ✓ tests/phase5.test.ts (2 tests) 797ms
+ Test Files  2 passed (2)
+      Tests  12 passed (12)
+=== MEMORY KINGDOM: Thin API Drive Script ===
+G1 verification: PASSED (exact match)
+G2 verification: PASSED (P6=0, P7=224, P8=108)
+G3 verification: PASSED (free=388 MB, largestFree=160 MB, extFrag=58.76%)
+ALL API HTTP VERIFICATION CHECKS PASSED
+>>> 5. Verifying React frontend (typecheck, unit tests, build)...
+ RUN  v2.1.9 /home/ramita/projects/memory-kingdom/frontend
+ ✓ src/memory-arena/layoutBlocks.test.ts (3 tests) 39ms
+ ✓ src/store/simStore.test.ts (4 tests) 17ms
+ ✓ src/quests/solutions.test.ts (7 tests) 17ms
+ ✓ src/test/api-integration.test.ts (1 test) 54ms
+ ✓ src/test/passthrough.test.tsx (2 tests) 173ms
+ ✓ src/game/spriteAtlas.test.ts (4 tests) 1063ms
+ ✓ src/oracle/templates.test.ts (2 tests) 14ms
+ ✓ src/animations/eventClips.test.ts (2 tests) 14ms
+ ✓ src/test/navigation.test.tsx (1 test) 2764ms
+ Test Files  9 passed (9)
+      Tests  26 passed (26)
+
+> memory-kingdom-frontend@1.0.0 build
+> tsc && vite build
+vite v5.4.21 building for production...
+✓ 669 modules transformed.
+dist/index.html                                                      0.44 kB │ gzip:   0.30 kB
+dist/assets/index-CXoKINnV.css                                      36.61 kB │ gzip:  14.90 kB
+dist/assets/index-Bf5koYGF.js                                      622.88 kB │ gzip: 176.14 kB
+✓ built in 7.79s
+==========================================
+ ALL VERIFICATION CHECKS PASSED           
+==========================================
+```
+
+### Gate 6 Status: PASSED
