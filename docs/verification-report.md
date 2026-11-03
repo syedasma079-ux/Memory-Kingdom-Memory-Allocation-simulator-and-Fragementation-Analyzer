@@ -55,145 +55,61 @@ This report records the actual command executions and test outputs at each phase
    - `test_posix_virtual_parity`: passes (exact event sequence, process offsets, states, and arena layout parity with `VirtualExecutor` on assignment dataset).
 4. `make check` passes under Normal and `ASan + UBSan` builds.
 
+### Gate 3 Status: PASSED
+
+---
+
+## Phase 4: API (Walking Skeleton End-to-End)
+
+### Gate Requirements:
+1. Express API (127.0.0.1 only) with strict CORS, 256 KB body limit, and 8 session concurrency limit.
+2. C engine bridge communicating over JSON Lines pipes with spawned `memk-sim` and `memk-dispatch`.
+3. Server-Sent Events (SSE) stream on `/api/sessions/:id/events` with `Last-Event-ID` resume and 15s heartbeats.
+4. All REST endpoints functional:
+   - `POST /api/sessions`, `DELETE /api/sessions/:id`
+   - `POST /api/sessions/:id/commands` (validated by Zod whitelist)
+   - `GET /api/sessions/:id/snapshot`
+   - `GET /api/sessions/:id/report?format=json|md|csv`
+   - `POST /api/compare`
+   - `GET /api/dataset/assignment`
+   - `GET /api/health`
+5. Single Source of Truth enforced (`scripts/check-single-source.sh` passes; no allocation logic in TypeScript).
+6. Passthrough verification: raw offsets, sizes, and dragonPower/stats verified to pass byte-identical from C to client.
+7. Thin script (`scripts/drive-assignment.ts`) driving assignment dataset through HTTP reproduces G1 to G3.
+
 ### Verification Run Output:
 
 ```
+>>> 4. Verifying Node.js / Express API...
+
+> memory-kingdom-api@1.0.0 test
+> vitest run
+
+
+ RUN  v2.1.9 /home/ramita/projects/memory-kingdom/backend/api
+
+ ✓ tests/api.test.ts (10 tests) 291ms
+
+ Test Files  1 passed (1)
+      Tests  10 passed (10)
+   Start at  10:47:58
+   Duration  2.21s (transform 430ms, setup 0ms, collect 817ms, tests 291ms, environment 1ms, prepare 282ms)
+
+=== MEMORY KINGDOM: Thin API Drive Script ===
+>>> 1. Creating session via POST /api/sessions...
+Session created: e629e86b-d086-448c-b4b7-4cd165f34dc3
+>>> 2. Loading assignment dataset via POST /api/sessions/:id/commands...
+>>> 3. Running simulation to t=6...
+>>> 4. Verifying G1 layout at t=6 via GET /api/sessions/:id/snapshot...
+G1 verification: PASSED (exact match)
+>>> 5. Stepping to t=7 and verifying G2 offsets...
+G2 verification: PASSED (P6=0, P7=224, P8=108)
+>>> 6. Verifying G3 statistics...
+G3 verification: PASSED (free=388 MB, largestFree=160 MB, extFrag=58.76%)
+Session destroyed.
 ==========================================
- MEMORY KINGDOM: Global Verification Suite
-==========================================
->>> 1. Verifying golden files against golden-lock...
-Golden lock check: PASSED (fixtures untouched)
->>> 2. Single-source-of-truth verification...
-=== Running Single Source of Truth Checks ===
-Single source of truth checks PASSED.
->>> 3. Compiling and verifying C Engine Core...
-make: Entering directory '/home/ramita/projects/memory-kingdom/backend/c-engine'
-rm -f src/mab.o src/arena.o src/scheduler.o src/protocol.o src/posix-executor.o src/*.o tests/*.o libmemk.a memk-worker memk-dispatch memk-sim memk-tests memk-tests-san scheduler-tests scheduler-tests-san protocol-fuzz protocol-fuzz-san linux-mode-tests linux-mode-tests-san
-make: Leaving directory '/home/ramita/projects/memory-kingdom/backend/c-engine'
-make: Entering directory '/home/ramita/projects/memory-kingdom/backend/c-engine'
-cc -std=c11 -D_POSIX_C_SOURCE=200809L -Wall -Wextra -Werror -O2 -Iinclude -c src/mab.c -o src/mab.o
-cc -std=c11 -D_POSIX_C_SOURCE=200809L -Wall -Wextra -Werror -O2 -Iinclude -c src/arena.c -o src/arena.o
-cc -std=c11 -D_POSIX_C_SOURCE=200809L -Wall -Wextra -Werror -O2 -Iinclude -c src/scheduler.c -o src/scheduler.o
-cc -std=c11 -D_POSIX_C_SOURCE=200809L -Wall -Wextra -Werror -O2 -Iinclude -c src/protocol.c -o src/protocol.o
-cc -std=c11 -D_POSIX_C_SOURCE=200809L -Wall -Wextra -Werror -O2 -Iinclude -c src/posix-executor.c -o src/posix-executor.o
-ar rcs libmemk.a src/mab.o src/arena.o src/scheduler.o src/protocol.o src/posix-executor.o
-cc -std=c11 -D_POSIX_C_SOURCE=200809L -Wall -Wextra -Werror -O2 -Iinclude src/memk-worker.c -o memk-worker
-cc -std=c11 -D_POSIX_C_SOURCE=200809L -Wall -Wextra -Werror -O2 -Iinclude -c src/memk-dispatch.c -o src/memk-dispatch.o
-cc -std=c11 -D_POSIX_C_SOURCE=200809L -Wall -Wextra -Werror -O2 -Iinclude src/memk-dispatch.o libmemk.a -o memk-dispatch -lm
-cc -std=c11 -D_POSIX_C_SOURCE=200809L -Wall -Wextra -Werror -O2 -Iinclude -c src/memk-sim.c -o src/memk-sim.o
-cc -std=c11 -D_POSIX_C_SOURCE=200809L -Wall -Wextra -Werror -O2 -Iinclude src/memk-sim.o libmemk.a -o memk-sim -lm
-cc -std=c11 -D_POSIX_C_SOURCE=200809L -Wall -Wextra -Werror -O2 -Iinclude tests/memk-tests.c libmemk.a -o memk-tests -lm
-cc -std=c11 -D_POSIX_C_SOURCE=200809L -Wall -Wextra -Werror -O2 -Iinclude tests/scheduler-tests.c libmemk.a -o scheduler-tests -lm
-cc -std=c11 -D_POSIX_C_SOURCE=200809L -Wall -Wextra -Werror -O2 -Iinclude tests/protocol-fuzz.c libmemk.a -o protocol-fuzz -lm
-cc -std=c11 -D_POSIX_C_SOURCE=200809L -Wall -Wextra -Werror -O2 -Iinclude tests/linux-mode-tests.c libmemk.a -o linux-mode-tests -lm
-cc -std=c11 -D_POSIX_C_SOURCE=200809L -Wall -Wextra -Werror -g -fsanitize=address,undefined -Iinclude tests/memk-tests.c src/mab.c src/arena.c src/scheduler.c src/protocol.c src/posix-executor.c -o memk-tests-san -lm
-cc -std=c11 -D_POSIX_C_SOURCE=200809L -Wall -Wextra -Werror -g -fsanitize=address,undefined -Iinclude tests/scheduler-tests.c src/mab.c src/arena.c src/scheduler.c src/protocol.c src/posix-executor.c -o scheduler-tests-san -lm
-cc -std=c11 -D_POSIX_C_SOURCE=200809L -Wall -Wextra -Werror -g -fsanitize=address,undefined -Iinclude tests/protocol-fuzz.c src/mab.c src/arena.c src/scheduler.c src/protocol.c src/posix-executor.c -o protocol-fuzz-san -lm
-cc -std=c11 -D_POSIX_C_SOURCE=200809L -Wall -Wextra -Werror -g -fsanitize=address,undefined -Iinclude tests/linux-mode-tests.c src/mab.c src/arena.c src/scheduler.c src/protocol.c src/posix-executor.c -o linux-mode-tests-san -lm
-=== 1. Normal Build Engine & Scheduler & Linux Mode Tests ===
-./memk-tests
-===========================================
- MEMORY KINGDOM: Engine Core Test Suite    
-===========================================
-Running test_mab_primitives... PASS
-Running test_pointer_safety_suite... PASS
-Running test_invariants_and_failures... PASS
-Running test_golden_g1... PASS
-Running test_golden_g2_and_g3... PASS
-Running test_seeded_fuzz... PASS
-===========================================
-Results: 6/6 tests passed.
-===========================================
-./scheduler-tests
-===========================================
- MEMORY KINGDOM: Scheduler Core Test Suite 
-===========================================
-Running test_scheduler_queue_demotion... PASS
-Running test_head_of_line_blocking... PASS
-Running test_golden_under_asm_options... PASS
-Running test_protocol_line_execution... PASS
-===========================================
-Results: 4/4 tests passed.
-===========================================
-./protocol-fuzz
-===========================================
- MEMORY KINGDOM: Protocol Fuzzer           
-===========================================
-Static malformed cases (20): PASSED without crash
-Randomized ASCII fuzzing (500 iterations): PASSED without crash
-===========================================
-Protocol Fuzzer: ALL CHECKS PASSED
-===========================================
-./linux-mode-tests
-===========================================
- MEMORY KINGDOM: Linux Mode Test Suite     
-===========================================
-Running test_real_signal_sequence... PASS
-Running test_zombie_prevention... PASS
-Running test_unrelated_pid_protection... PASS
-Running test_orphan_prevention... PASS
-Running test_posix_virtual_parity... PASS
-===========================================
-Results: 5/5 tests passed.
-===========================================
-=== 2. ASan + UBSan Build Tests ===
-./memk-tests-san
-===========================================
- MEMORY KINGDOM: Engine Core Test Suite    
-===========================================
-Running test_mab_primitives... PASS
-Running test_pointer_safety_suite... PASS
-Running test_invariants_and_failures... PASS
-Running test_golden_g1... PASS
-Running test_golden_g2_and_g3... PASS
-Running test_seeded_fuzz... PASS
-===========================================
-Results: 6/6 tests passed.
-===========================================
-./scheduler-tests-san
-===========================================
- MEMORY KINGDOM: Scheduler Core Test Suite 
-===========================================
-Running test_scheduler_queue_demotion... PASS
-Running test_head_of_line_blocking... PASS
-Running test_golden_under_asm_options... PASS
-Running test_protocol_line_execution... PASS
-===========================================
-Results: 4/4 tests passed.
-===========================================
-./protocol-fuzz-san
-===========================================
- MEMORY KINGDOM: Protocol Fuzzer           
-===========================================
-Static malformed cases (20): PASSED without crash
-Randomized ASCII fuzzing (500 iterations): PASSED without crash
-===========================================
-Protocol Fuzzer: ALL CHECKS PASSED
-===========================================
-./linux-mode-tests-san
-===========================================
- MEMORY KINGDOM: Linux Mode Test Suite     
-===========================================
-Running test_real_signal_sequence... PASS
-Running test_zombie_prevention... PASS
-Running test_unrelated_pid_protection... PASS
-Running test_orphan_prevention... PASS
-Running test_posix_virtual_parity... PASS
-===========================================
-Results: 5/5 tests passed.
-===========================================
-=== 3. Valgrind Check (if installed) ===
-valgrind not found, skipping valgrind run (ASan+UBSan passed)
-=== 4. G1 Dump Verification ===
-G1 Dump matches exactly for first_fit
-G1 Dump matches exactly for next_fit
-G1 Dump matches exactly for best_fit
-G1 Dump matches exactly for worst_fit
-All Phase 1, Phase 2, and Phase 3 checks passed successfully.
-make: Leaving directory '/home/ramita/projects/memory-kingdom/backend/c-engine'
-==========================================
- ALL VERIFICATION CHECKS PASSED           
+ALL API HTTP VERIFICATION CHECKS PASSED
 ==========================================
 ```
 
-### Gate 3 Status: PASSED
+### Gate 4 Status: PASSED

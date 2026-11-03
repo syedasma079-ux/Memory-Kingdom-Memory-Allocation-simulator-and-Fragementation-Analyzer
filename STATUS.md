@@ -1,6 +1,6 @@
 # MEMORY KINGDOM Project Status
 
-## Current Phase: Phase 4 (API - Walking Skeleton End-to-End)
+## Current Phase: Phase 5 (Functional Frontend)
 
 ### Phase Gates Progress
 - [x] **Phase 1: Engine Core** - **PASSED**
@@ -14,7 +14,6 @@
   - Process state machine: `NOT_ARRIVED`, `WAITING_FOR_MEMORY`, `READY`, `RUNNING`, `SUSPENDED`, `TERMINATED`
   - Tick boundary algorithm with strict step order (ASM-3)
   - Multilevel feedback priority demotion (ASM-1, ASM-5) & head-of-line blocking (ASM-2)
-  - Verified across all ASM-1 and ASM-2 parameter combinations
   - Complete JSON Lines protocol server in `memk-sim`
   - Protocol fuzzer (static malformed & 500 randomized ASCII cases) passed without crashes
 - [x] **Phase 3: Linux Mode (POSIX Dispatcher & Worker)** - **PASSED**
@@ -26,20 +25,27 @@
   - Unrelated PID protection test passed (signals restricted to owned child PIDs $> 1$)
   - Orphan prevention test passed (parent dispatcher termination triggers kernel kill of workers)
   - Parity test passed: identical event sequences, process offsets, and arena layout between `PosixExecutor` and `VirtualExecutor` on assignment dataset
-- [ ] **Phase 4: API (Walking Skeleton End-to-End)**
-  - Express server (Node 20+, TypeScript, zod)
-  - Spawn `memk-sim` / `memk-dispatch` over JSON Lines pipes
-  - REST endpoints (`/api/sessions`, `/api/sessions/:id/commands`, `/api/sessions/:id/snapshot`, `/api/sessions/:id/events`, `/api/sessions/:id/report`, `/api/compare`, `/api/health`)
-  - Server-Sent Events (SSE) with `Last-Event-ID` resume and heartbeat
-  - Enforcement of Single Source of Truth (no allocation/split/merge in Node/TS)
-  - Thin script verifying assignment dataset through HTTP reproduces G1 to G3
+- [x] **Phase 4: API (Walking Skeleton End-to-End)** - **PASSED**
+  - Express server (Node 20+, TypeScript, Zod) on `127.0.0.1:4000`
+  - Spawns C engine `memk-sim` / `memk-dispatch` over JSON Lines pipes
+  - Server-Sent Events (SSE) with `Last-Event-ID` resume and 15s heartbeats
+  - Full REST endpoints: sessions, commands, snapshots, reports (`json|md|csv`), 4-policy comparison, assignment dataset
+  - Passthrough tests confirm zero allocation/split/merge recomputation in Node
+  - Automated thin script (`scripts/drive-assignment.ts`) drives dataset through HTTP and reproduces G1, G2, G3
 - [ ] **Phase 5: Functional Frontend (10 Interactive Locations, Store, Pure Snapshots)**
+  - Vite + React + TypeScript + Tailwind
+  - Event-sourced store: snapshots, cursor, pure views
+  - `layoutBlocks(blocks, total)` proportional 2D realm mapping (8 rows of 128 MB)
+  - Technical view (offset ruler, linked-list diagram, process table)
+  - All 10 locations functional: Kingdom Overview, Memory Arena, Algorithm Guild, Process Tavern, Feedback Queue Castle, Fragmentation Dungeon, Royal Strategy Room, Quest Board, Simulation Chronicles, System Settings
+  - Navigation test visiting all 10 locations
 - [ ] **Phase 6: Game Layer (16-bit SNES Pixel Art, Dragon Tiers, Solvable Quests)**
 - [ ] **Phase 7: Final Verification & Clean WSL2 Run**
 
 ### Next Steps
-Begin Phase 4:
-1. Initialize `backend/api/` with `package.json`, `tsconfig.json`, Express, Zod, and Vitest.
-2. Implement C engine process manager (spawning `memk-sim` or `memk-dispatch` over stdin/stdout pipes).
-3. Implement Express routes and SSE stream.
-4. Add API integration tests, passthrough test, and dataset reproduction test.
+Begin Phase 5:
+1. Initialize `frontend/` with Vite, React, TypeScript, Tailwind CSS, Lucide React, and Recharts.
+2. Implement pure proportional layout: `layoutBlocks(blocks, total)`.
+3. Implement event-sourced Zustand store rendering pure snapshots from engine.
+4. Implement all 10 locations and navigation router.
+5. Add frontend unit and navigation tests.

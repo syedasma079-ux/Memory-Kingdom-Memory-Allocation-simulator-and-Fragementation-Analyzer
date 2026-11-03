@@ -15,11 +15,14 @@ echo "Golden lock check: PASSED (fixtures untouched)"
 echo ">>> 2. Single-source-of-truth verification..."
 ./scripts/check-single-source.sh
 
-echo ">>> 3. Compiling and verifying C Engine Core..."
+echo ">>> 3. Compiling and verifying C Engine Core & Linux Mode..."
 make -C backend/c-engine clean
 make -C backend/c-engine check
 
-# Future phases will add API and Frontend checks as they are built.
+echo ">>> 4. Verifying Node.js / Express API..."
+export PATH="$HOME/.local/bin:$PATH"
+(cd backend/api && npm test)
+(cd backend/api && npx tsx scripts/drive-assignment.ts)
 
 echo "=========================================="
 echo " ALL VERIFICATION CHECKS PASSED           "
