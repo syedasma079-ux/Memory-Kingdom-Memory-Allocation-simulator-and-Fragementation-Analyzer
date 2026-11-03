@@ -1,0 +1,25 @@
+# Build outputs
+node_modules/
+dist/
+build/
+*.o
+*.a
+bin/
+memk-sim
+memk-dispatch
+memk-worker
+memk-tests
+
+# Sanitizer and core dumps
+core*
+*.dSYM/
+
+# OS and IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs and scratch
+*.log
+scratch/

@@ -1,0 +1,13 @@
+{
+  "t": 6,
+  "nextFitPointer": 960,
+  "blocks": [
+    { "offset": 0, "size": 192, "allocated": false },
+    { "offset": 192, "size": 32, "allocated": true },
+    { "offset": 224, "size": 416, "allocated": false },
+    { "offset": 640, "size": 32, "allocated": true },
+    { "offset": 672, "size": 160, "allocated": false },
+    { "offset": 832, "size": 128, "allocated": true },
+    { "offset": 960, "size": 64, "allocated": false }
+  ]
+}

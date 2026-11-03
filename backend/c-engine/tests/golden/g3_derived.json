@@ -1,0 +1,68 @@
+{
+  "totalFree": 388,
+  "first_fit": {
+    "blocks": [
+      { "offset": 0, "size": 108, "allocated": true, "process": "P6" },
+      { "offset": 108, "size": 80, "allocated": true, "process": "P8" },
+      { "offset": 188, "size": 4, "allocated": false },
+      { "offset": 192, "size": 32, "allocated": true, "process": "P1" },
+      { "offset": 224, "size": 256, "allocated": true, "process": "P7" },
+      { "offset": 480, "size": 160, "allocated": false },
+      { "offset": 640, "size": 32, "allocated": true, "process": "P3" },
+      { "offset": 672, "size": 160, "allocated": false },
+      { "offset": 832, "size": 128, "allocated": true, "process": "P5" },
+      { "offset": 960, "size": 64, "allocated": false }
+    ],
+    "largestFree": 160,
+    "externalFragmentation": 58.76
+  },
+  "next_fit": {
+    "blocks": [
+      { "offset": 0, "size": 108, "allocated": true, "process": "P6" },
+      { "offset": 108, "size": 84, "allocated": false },
+      { "offset": 192, "size": 32, "allocated": true, "process": "P1" },
+      { "offset": 224, "size": 256, "allocated": true, "process": "P7" },
+      { "offset": 480, "size": 80, "allocated": true, "process": "P8" },
+      { "offset": 560, "size": 80, "allocated": false },
+      { "offset": 640, "size": 32, "allocated": true, "process": "P3" },
+      { "offset": 672, "size": 160, "allocated": false },
+      { "offset": 832, "size": 128, "allocated": true, "process": "P5" },
+      { "offset": 960, "size": 64, "allocated": false }
+    ],
+    "nextFitPointer": 560,
+    "largestFree": 160,
+    "externalFragmentation": 58.76
+  },
+  "best_fit": {
+    "blocks": [
+      { "offset": 0, "size": 192, "allocated": false },
+      { "offset": 192, "size": 32, "allocated": true, "process": "P1" },
+      { "offset": 224, "size": 256, "allocated": true, "process": "P7" },
+      { "offset": 480, "size": 80, "allocated": true, "process": "P8" },
+      { "offset": 560, "size": 80, "allocated": false },
+      { "offset": 640, "size": 32, "allocated": true, "process": "P3" },
+      { "offset": 672, "size": 108, "allocated": true, "process": "P6" },
+      { "offset": 780, "size": 52, "allocated": false },
+      { "offset": 832, "size": 128, "allocated": true, "process": "P5" },
+      { "offset": 960, "size": 64, "allocated": false }
+    ],
+    "largestFree": 192,
+    "externalFragmentation": 50.52
+  },
+  "worst_fit": {
+    "blocks": [
+      { "offset": 0, "size": 80, "allocated": true, "process": "P8" },
+      { "offset": 80, "size": 112, "allocated": false },
+      { "offset": 192, "size": 32, "allocated": true, "process": "P1" },
+      { "offset": 224, "size": 108, "allocated": true, "process": "P6" },
+      { "offset": 332, "size": 256, "allocated": true, "process": "P7" },
+      { "offset": 588, "size": 52, "allocated": false },
+      { "offset": 640, "size": 32, "allocated": true, "process": "P3" },
+      { "offset": 672, "size": 160, "allocated": false },
+      { "offset": 832, "size": 128, "allocated": true, "process": "P5" },
+      { "offset": 960, "size": 64, "allocated": false }
+    ],
+    "largestFree": 160,
+    "externalFragmentation": 58.76
+  }
+}
