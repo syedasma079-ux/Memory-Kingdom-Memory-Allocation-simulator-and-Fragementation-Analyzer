@@ -22,3 +22,4 @@ int protocolProcessLine(ProtocolSession *ps, const char *line, FILE *outStream);
 void protocolRunLoop(ProtocolSession *ps, FILE *inStream, FILE *outStream);
 
 #endif /* MEMK_PROTOCOL_H */
+

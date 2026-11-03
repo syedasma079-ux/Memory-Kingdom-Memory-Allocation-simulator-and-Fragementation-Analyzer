@@ -14,6 +14,8 @@ scheduler-tests
 scheduler-tests-san
 protocol-fuzz
 protocol-fuzz-san
+linux-mode-tests
+linux-mode-tests-san
 
 # Sanitizer and core dumps
 core*

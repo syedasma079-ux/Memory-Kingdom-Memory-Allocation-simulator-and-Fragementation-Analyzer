@@ -332,3 +332,4 @@ void protocolRunLoop(ProtocolSession *ps, FILE *inStream, FILE *outStream) {
 
     free(line);
 }
+

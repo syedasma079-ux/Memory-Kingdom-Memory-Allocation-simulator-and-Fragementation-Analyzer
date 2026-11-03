@@ -3,15 +3,24 @@ CFLAGS ?= -std=c11 -D_POSIX_C_SOURCE=200809L -Wall -Wextra -Werror -O2 -Iinclude
 SAN_FLAGS = -std=c11 -D_POSIX_C_SOURCE=200809L -Wall -Wextra -Werror -g -fsanitize=address,undefined -Iinclude
 LDFLAGS = -lm
 
-SRC = src/mab.c src/arena.c src/scheduler.c src/protocol.c
+SRC = src/mab.c src/arena.c src/scheduler.c src/protocol.c src/posix-executor.c
 OBJ = $(SRC:.c=.o)
 
-all: libmemk.a memk-sim memk-tests scheduler-tests protocol-fuzz
+all: libmemk.a memk-worker memk-dispatch memk-sim memk-tests scheduler-tests protocol-fuzz linux-mode-tests
 
 libmemk.a: $(OBJ)
 	ar rcs $@ $(OBJ)
 
 %.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+memk-worker: src/memk-worker.c
+	$(CC) $(CFLAGS) $< -o $@
+
+memk-dispatch: src/memk-dispatch.o libmemk.a
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+src/memk-dispatch.o: src/memk-dispatch.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 memk-sim: src/memk-sim.o libmemk.a
@@ -38,15 +47,23 @@ protocol-fuzz: tests/protocol-fuzz.c libmemk.a
 protocol-fuzz-san: tests/protocol-fuzz.c $(SRC)
 	$(CC) $(SAN_FLAGS) $^ -o $@ $(LDFLAGS)
 
-check: all memk-tests-san scheduler-tests-san protocol-fuzz-san
-	@echo "=== 1. Normal Build Engine & Scheduler Tests ==="
+linux-mode-tests: tests/linux-mode-tests.c libmemk.a memk-worker
+	$(CC) $(CFLAGS) tests/linux-mode-tests.c libmemk.a -o $@ $(LDFLAGS)
+
+linux-mode-tests-san: tests/linux-mode-tests.c $(SRC) memk-worker
+	$(CC) $(SAN_FLAGS) tests/linux-mode-tests.c $(SRC) -o $@ $(LDFLAGS)
+
+check: all memk-tests-san scheduler-tests-san protocol-fuzz-san linux-mode-tests-san
+	@echo "=== 1. Normal Build Engine & Scheduler & Linux Mode Tests ==="
 	./memk-tests
 	./scheduler-tests
 	./protocol-fuzz
+	./linux-mode-tests
 	@echo "=== 2. ASan + UBSan Build Tests ==="
 	./memk-tests-san
 	./scheduler-tests-san
 	./protocol-fuzz-san
+	./linux-mode-tests-san
 	@echo "=== 3. Valgrind Check (if installed) ==="
 	@if command -v valgrind >/dev/null 2>&1; then \
 		valgrind --leak-check=full --error-exitcode=1 ./memk-tests; \
@@ -69,9 +86,9 @@ check: all memk-tests-san scheduler-tests-san protocol-fuzz-san
 	@diff -u .expected_g1.txt .actual_g1_wf.txt
 	@echo "G1 Dump matches exactly for worst_fit"
 	@rm -f .expected_g1.txt .actual_g1_*.txt
-	@echo "All Phase 1 and Phase 2 checks passed successfully."
+	@echo "All Phase 1, Phase 2, and Phase 3 checks passed successfully."
 
 clean:
-	rm -f $(OBJ) src/*.o tests/*.o libmemk.a memk-sim memk-tests memk-tests-san scheduler-tests scheduler-tests-san protocol-fuzz protocol-fuzz-san
+	rm -f $(OBJ) src/*.o tests/*.o libmemk.a memk-worker memk-dispatch memk-sim memk-tests memk-tests-san scheduler-tests scheduler-tests-san protocol-fuzz protocol-fuzz-san linux-mode-tests linux-mode-tests-san
 
 .PHONY: all check clean

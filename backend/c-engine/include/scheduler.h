@@ -53,6 +53,7 @@ typedef struct {
     int firstRunTime;
     int finishTime;
     int waitedForMemoryTicks;
+    int osPid;         /* Real OS PID in Linux mode, 0 in Virtual mode */
 } Process;
 
 /* Queue structure for process IDs */
@@ -162,3 +163,4 @@ typedef struct {
 void schedulerCompareRun(const Process *workload, int count, const SchedulerConfig *baseCfg, PolicyCompareResult results[4]);
 
 #endif /* MEMK_SCHEDULER_H */
+
