@@ -1,0 +1,13 @@
+{
+  "name": "memory-kingdom",
+  "version": "1.0.0",
+  "description": "MEMORY KINGDOM: Authentic 16-Bit OS Memory Allocation Simulator & Fragmentation Analyzer",
+  "private": true,
+  "scripts": {
+    "setup": "./scripts/setup.sh",
+    "build": "./scripts/build.sh",
+    "dev": "./scripts/dev.sh",
+    "test": "./scripts/verify.sh",
+    "verify": "./scripts/verify.sh"
+  }
+}

@@ -106,7 +106,7 @@ vi.mock('../services/api', () => ({
 
 class FakeEventSource {
   onmessage: ((ev: MessageEvent) => void) | null = null;
-  close() {}
+  close() { }
 }
 vi.stubGlobal('EventSource', FakeEventSource);
 if (!URL.createObjectURL) {
