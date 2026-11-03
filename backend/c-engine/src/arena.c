@@ -524,3 +524,4 @@ const char *verdictToString(TraceVerdict verdict) {
         default: return "UNKNOWN";
     }
 }
+

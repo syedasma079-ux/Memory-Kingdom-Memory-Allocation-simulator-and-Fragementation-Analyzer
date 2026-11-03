@@ -106,3 +106,4 @@ At t = 7, processes 6, 7, and 8 (108 MB, 256 MB, 80 MB) are admitted and allocat
 - **Next Fit**: P6 at 0, P7 at 224, P8 at 480.
 - **Best Fit**: P6 at 672, P7 at 224, P8 at 480.
 - **Worst Fit**: P6 at 224, P7 at 332, P8 at 0.
+

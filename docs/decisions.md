@@ -11,3 +11,4 @@
 | D7 | Internal 480x270 canvas with integer scaling; bundled retro fonts | Retro 16-bit SNES aesthetics without external font CDNs or blurry scaling. |
 | D8 | 1024 MB arena total locked in Assignment mode | Enforces strict compliance with academic dataset. |
 | D9 | Single source of truth: all allocation decisions, splits, merges, offsets, traces, and metrics calculated in C | Enforced by `scripts/check-single-source.sh`. |
+

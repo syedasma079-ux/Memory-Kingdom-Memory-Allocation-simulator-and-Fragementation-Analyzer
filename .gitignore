@@ -9,6 +9,11 @@ memk-sim
 memk-dispatch
 memk-worker
 memk-tests
+memk-tests-san
+scheduler-tests
+scheduler-tests-san
+protocol-fuzz
+protocol-fuzz-san
 
 # Sanitizer and core dumps
 core*
@@ -23,3 +28,4 @@ Thumbs.db
 # Logs and scratch
 *.log
 scratch/
+

@@ -3,10 +3,10 @@ CFLAGS ?= -std=c11 -D_POSIX_C_SOURCE=200809L -Wall -Wextra -Werror -O2 -Iinclude
 SAN_FLAGS = -std=c11 -D_POSIX_C_SOURCE=200809L -Wall -Wextra -Werror -g -fsanitize=address,undefined -Iinclude
 LDFLAGS = -lm
 
-SRC = src/mab.c src/arena.c
+SRC = src/mab.c src/arena.c src/scheduler.c src/protocol.c
 OBJ = $(SRC:.c=.o)
 
-all: libmemk.a memk-sim memk-tests
+all: libmemk.a memk-sim memk-tests scheduler-tests protocol-fuzz
 
 libmemk.a: $(OBJ)
 	ar rcs $@ $(OBJ)
@@ -26,14 +26,31 @@ memk-tests: tests/memk-tests.c libmemk.a
 memk-tests-san: tests/memk-tests.c $(SRC)
 	$(CC) $(SAN_FLAGS) $^ -o $@ $(LDFLAGS)
 
-check: all memk-tests-san
-	@echo "=== 1. Normal Build Tests ==="
+scheduler-tests: tests/scheduler-tests.c libmemk.a
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+scheduler-tests-san: tests/scheduler-tests.c $(SRC)
+	$(CC) $(SAN_FLAGS) $^ -o $@ $(LDFLAGS)
+
+protocol-fuzz: tests/protocol-fuzz.c libmemk.a
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+protocol-fuzz-san: tests/protocol-fuzz.c $(SRC)
+	$(CC) $(SAN_FLAGS) $^ -o $@ $(LDFLAGS)
+
+check: all memk-tests-san scheduler-tests-san protocol-fuzz-san
+	@echo "=== 1. Normal Build Engine & Scheduler Tests ==="
 	./memk-tests
+	./scheduler-tests
+	./protocol-fuzz
 	@echo "=== 2. ASan + UBSan Build Tests ==="
 	./memk-tests-san
+	./scheduler-tests-san
+	./protocol-fuzz-san
 	@echo "=== 3. Valgrind Check (if installed) ==="
 	@if command -v valgrind >/dev/null 2>&1; then \
 		valgrind --leak-check=full --error-exitcode=1 ./memk-tests; \
+		valgrind --leak-check=full --error-exitcode=1 ./scheduler-tests; \
 	else \
 		echo "valgrind not found, skipping valgrind run (ASan+UBSan passed)"; \
 	fi
@@ -52,9 +69,9 @@ check: all memk-tests-san
 	@diff -u .expected_g1.txt .actual_g1_wf.txt
 	@echo "G1 Dump matches exactly for worst_fit"
 	@rm -f .expected_g1.txt .actual_g1_*.txt
-	@echo "All Engine Core checks passed successfully."
+	@echo "All Phase 1 and Phase 2 checks passed successfully."
 
 clean:
-	rm -f $(OBJ) src/*.o tests/*.o libmemk.a memk-sim memk-tests memk-tests-san
+	rm -f $(OBJ) src/*.o tests/*.o libmemk.a memk-sim memk-tests memk-tests-san scheduler-tests scheduler-tests-san protocol-fuzz protocol-fuzz-san
 
 .PHONY: all check clean

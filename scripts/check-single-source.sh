@@ -18,6 +18,8 @@ VIOLATIONS=$(grep -rnE "\b(memFree|memMerge|memSplit)\b" \
   --exclude="*.o" \
   --exclude="*.a" \
   --exclude="memk-*" \
+  --exclude="scheduler-tests*" \
+  --exclude="protocol-fuzz*" \
   --exclude="check-single-source.sh" \
   backend/ frontend/ || true)
 

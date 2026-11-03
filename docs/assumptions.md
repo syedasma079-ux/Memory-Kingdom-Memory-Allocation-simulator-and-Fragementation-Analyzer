@@ -16,3 +16,4 @@ Every assumption represents a named runtime option that is configurable and tagg
 | ASM-10 | Best Fit and Worst Fit ties go to lowest offset and never exit early | As listed | No (no ties in dataset) | UNVERIFIED | Deterministic tie breaking. |
 | ASM-11 | A finishing process releases memory at the end of its final slice (time $t + \text{quantum}$) | As listed | Yes (DER: G1 requires it) | UNVERIFIED | Released when slice concludes. |
 | ASM-12 | Resource columns are carried but do not constrain scheduling | Ignored | No (all zero in dataset) | UNVERIFIED | Resource fields parsed and stored for display. |
+

@@ -113,3 +113,4 @@ const char *failureReasonToString(AllocFailureReason reason);
 const char *verdictToString(TraceVerdict verdict);
 
 #endif /* MEMK_ARENA_H */
+
