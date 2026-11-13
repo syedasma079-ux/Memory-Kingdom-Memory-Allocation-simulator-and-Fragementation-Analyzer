@@ -155,3 +155,4 @@ Verifies:
 5. Linux POSIX Dispatcher (`linux-mode-tests` signals, 0 zombies, PDEATHSIG orphans).
 6. Node.js Express API (`api.test.ts`, `phase5.test.ts`, HTTP G1–G3 driver).
 7. React Frontend (`tsc`, `vite build`, 26 unit and navigation tests).
+

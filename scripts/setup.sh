@@ -41,3 +41,4 @@ echo ">>> Installing frontend dependencies..."
 echo "=========================================="
 echo " MEMORY KINGDOM SETUP COMPLETE"
 echo "=========================================="
+

@@ -32,6 +32,7 @@ export function ProcessTavern() {
   const snap = useSimStore((s) => s.getSnapshot());
   const loadAssignment = useSimStore((s) => s.loadAssignment);
   const loadRandom = useSimStore((s) => s.loadRandom);
+  const openCustomWorkload = useSimStore((s) => s.openCustomWorkload);
   const reset = useSimStore((s) => s.reset);
   const procs = snap?.processes ?? [];
 
@@ -47,6 +48,14 @@ export function ProcessTavern() {
       <div className="flex flex-wrap gap-2">
         <button type="button" className="btn" data-testid="tavern-load-assignment" onClick={() => void loadAssignment()}>
           Load assignment
+        </button>
+        <button
+          type="button"
+          className="btn border-gold-2 text-gold-2 hover:bg-gold-2/20"
+          data-testid="tavern-create-dataset"
+          onClick={openCustomWorkload}
+        >
+          Create Dataset
         </button>
         <button
           type="button"

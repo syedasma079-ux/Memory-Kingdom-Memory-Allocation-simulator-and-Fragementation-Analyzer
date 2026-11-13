@@ -114,6 +114,11 @@ export function createApp(sessionManager: SessionManager = new SessionManager())
       return;
     }
 
+    if (req.query.format === 'json' || req.headers.accept?.includes('application/json')) {
+      res.json({ ok: true, data: session.events });
+      return;
+    }
+
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
@@ -121,7 +126,7 @@ export function createApp(sessionManager: SessionManager = new SessionManager())
 
     const lastEventId = req.headers['last-event-id']
       ? parseInt(req.headers['last-event-id'] as string, 10)
-      : undefined;
+      : (req.query.lastEventId ? parseInt(req.query.lastEventId as string, 10) : undefined);
 
     sessionManager.addSseClient(session, res, lastEventId);
 
@@ -165,7 +170,11 @@ export function createApp(sessionManager: SessionManager = new SessionManager())
   app.post('/api/compare', async (req: Request, res: Response, next: NextFunction) => {
     try {
       // Create temporary session to run compare.run in C
-      const session = await sessionManager.createSession(SessionConfigSchema.parse({}));
+      const totalMemory =
+        typeof req.body?.totalMemory === 'number' && req.body.totalMemory > 0
+          ? req.body.totalMemory
+          : 1024;
+      const session = await sessionManager.createSession(SessionConfigSchema.parse({ totalMemory }));
       try {
         if (req.body?.jobs) {
           await session.bridge.sendCommand('workload.load', { jobs: req.body.jobs });

@@ -24,7 +24,9 @@ export default function App() {
       console.error('Failed to create session', err);
     });
     return () => {
-      void destroySession();
+      if (!useSimStore.getState().isInitializing) {
+        void destroySession();
+      }
     };
   }, [createSession, destroySession]);
 

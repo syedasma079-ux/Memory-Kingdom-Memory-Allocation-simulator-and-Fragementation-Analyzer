@@ -21,8 +21,10 @@ export function RealmMap() {
 
   const territories = useMemo(() => {
     if (!snap) return [];
-    return layoutBlocks(snap.arena.blocks, snap.arena.total, {
-      rows: 8,
+    const total = snap.arena.total || 1024;
+    const rows = Math.max(1, Math.ceil(total / 128));
+    return layoutBlocks(snap.arena.blocks, total, {
+      rows,
       rowSize: 128,
       cellW: 2,
       cellH: 24
@@ -31,8 +33,10 @@ export function RealmMap() {
 
   if (!snap) return <p className="text-sm text-stone-2">No snapshot yet.</p>;
 
+  const total = snap.arena.total || 1024;
+  const rows = Math.max(1, Math.ceil(total / 128));
   const width = 128 * 2;
-  const height = 8 * 24;
+  const height = rows * 24;
   const nextFit = snap.arena.nextFitOffset;
 
   return (

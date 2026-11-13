@@ -101,7 +101,9 @@ vi.mock('../services/api', () => ({
   })),
   getHealth: vi.fn(),
   getAssignmentDataset: vi.fn(),
-  openEventStream: vi.fn()
+  openEventStream: vi.fn(),
+  getEventsUrl: vi.fn((id: string) => `/api/sessions/${id}/events`),
+  getEvents: vi.fn(async () => ({ ok: true, data: [] }))
 }));
 
 class FakeEventSource {

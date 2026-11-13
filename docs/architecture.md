@@ -70,3 +70,4 @@
 ### 2.3 React Frontend (`frontend/`)
 - Built with Vite, React 18, TypeScript (strict), and Tailwind CSS.
 - Adheres to Decision D9: React is an observer; all statistics, layouts, and offsets come directly from C engine snapshots.
+

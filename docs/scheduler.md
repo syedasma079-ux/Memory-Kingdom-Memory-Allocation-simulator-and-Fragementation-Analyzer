@@ -62,3 +62,4 @@ In Linux POSIX mode, real processes are launched, signaled, and reaped:
 - **Zombie Prevention**: All child exits are immediately acknowledged and reaped via `waitpid`. `/proc/<pid>/stat` checks confirm zero zombies.
 - **Orphan Prevention**: Workers execute `prctl(PR_SET_PDEATHSIG, SIGKILL)`. If the parent dispatcher dies unexpectedly, the Linux kernel terminates workers instantly.
 - **Target PID Safety**: Dispatcher signals are strictly restricted to owned child PIDs (`pid > 1`); negative PIDs, 0, and PID 1 are rejected.
+

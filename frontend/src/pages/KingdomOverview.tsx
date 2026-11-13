@@ -7,6 +7,7 @@ export function KingdomOverview() {
   const config = useSimStore((s) => s.config);
   const setLocation = useSimStore((s) => s.setLocation);
   const loadAssignment = useSimStore((s) => s.loadAssignment);
+  const openCustomWorkload = useSimStore((s) => s.openCustomWorkload);
   const [showAbout, setShowAbout] = useState(false);
 
   const procs = snap?.processes ?? [];
@@ -66,6 +67,14 @@ export function KingdomOverview() {
           onClick={() => void loadAssignment()}
         >
           Load Assignment Dataset
+        </button>
+        <button
+          type="button"
+          className="btn border-gold-2 text-gold-2 hover:bg-gold-2/20"
+          data-testid="overview-create-dataset"
+          onClick={openCustomWorkload}
+        >
+          Create Dataset
         </button>
         <button type="button" className="btn" data-testid="overview-how" onClick={() => setLocation('settings')}>
           How to Play / Assumptions

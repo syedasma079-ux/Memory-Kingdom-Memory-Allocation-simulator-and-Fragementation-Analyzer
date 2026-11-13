@@ -3,10 +3,12 @@ import { ASSUMPTIONS } from '../data/assumptions';
 import { renderOracle } from '../oracle/templates';
 import * as api from '../services/api';
 import type {
+  ActiveWorkloadConfig,
   AssumptionRow,
   ComparePolicyResult,
   EngineEvent,
   EngineSnapshot,
+  Job,
   LocationId,
   Policy,
   PolicyMidRunView,
@@ -36,9 +38,16 @@ const defaultConfig: SessionConfig = {
   engine: 'sim'
 };
 
+const defaultWorkload: ActiveWorkloadConfig = {
+  source: 'assignment',
+  totalMemory: 1024,
+  quantum: 1
+};
+
 interface SimState {
   location: LocationId;
   sessionId: string | null;
+  isInitializing: boolean;
   config: SessionConfig;
   events: EngineEvent[];
   snapshots: EngineSnapshot[];
@@ -56,6 +65,10 @@ interface SimState {
   assumptions: AssumptionRow[];
   eventSource: EventSource | null;
   playTimer: ReturnType<typeof setInterval> | null;
+  workloadSource: 'assignment' | 'custom' | 'random';
+  customJobs: Job[] | null;
+  activeWorkload: ActiveWorkloadConfig | null;
+  isCustomWorkloadOpen: boolean;
 
   setLocation: (id: LocationId) => void;
   setViewMode: (mode: 'world' | 'technical') => void;
@@ -64,11 +77,15 @@ interface SimState {
   setSpeed: (s: 1 | 2 | 4) => void;
   setSelectedBlock: (i: number | null) => void;
   setCursor: (index: number) => void;
+  openCustomWorkload: () => void;
+  closeCustomWorkload: () => void;
+  ensureSession: () => Promise<string | null>;
   createSession: (partial?: Partial<SessionConfig>) => Promise<void>;
   destroySession: () => Promise<void>;
   sendCommand: (payload: Record<string, unknown>) => Promise<unknown>;
   loadAssignment: () => Promise<void>;
   loadRandom: (seed?: number, n?: number) => Promise<void>;
+  loadCustomWorkload: (jobs: Job[], totalMemory?: number) => Promise<void>;
   tick: () => Promise<void>;
   runUntil: (untilT: number) => Promise<void>;
   reset: () => Promise<void>;
@@ -83,11 +100,14 @@ interface SimState {
   configure: (partial: Partial<SessionConfig>) => Promise<void>;
   getSnapshot: () => EngineSnapshot | null;
   appendEvent: (event: EngineEvent) => void;
+  syncEvents: () => Promise<void>;
 }
 
-function attachEventStream(sessionId: string, appendEvent: (e: EngineEvent) => void): EventSource {
-  const es = new EventSource(`/api/sessions/${sessionId}/events`);
-  es.onmessage = (msg) => {
+function attachEventStream(sessionId: string, appendEvent: (e: EngineEvent) => void): EventSource | null {
+  if (typeof EventSource === 'undefined') return null;
+  const url = api.getEventsUrl ? api.getEventsUrl(sessionId) : `/api/sessions/${sessionId}/events`;
+  const es = new EventSource(url);
+  const handleEvent = (msg: MessageEvent) => {
     try {
       const parsed = JSON.parse(msg.data) as EngineEvent;
       if (parsed && parsed.type === 'event') appendEvent(parsed);
@@ -95,12 +115,36 @@ function attachEventStream(sessionId: string, appendEvent: (e: EngineEvent) => v
       /* heartbeat / non-json */
     }
   };
+
+  es.onmessage = handleEvent;
+
+  const eventTypes = [
+    'process_arrived',
+    'process_admitted',
+    'process_dispatched',
+    'process_demoted',
+    'process_terminated',
+    'memory_released',
+    'alloc_failed',
+    'idle',
+    'sim_finished'
+  ];
+
+  if (typeof es.addEventListener === 'function') {
+    for (const type of eventTypes) {
+      es.addEventListener(type, handleEvent as EventListener);
+    }
+  }
+
   return es;
 }
+
+let initPromise: Promise<string | null> | null = null;
 
 export const useSimStore = create<SimState>((set, get) => ({
   location: 'overview',
   sessionId: null,
+  isInitializing: false,
   config: defaultConfig,
   events: [],
   snapshots: [],
@@ -118,6 +162,10 @@ export const useSimStore = create<SimState>((set, get) => ({
   assumptions: ASSUMPTIONS,
   eventSource: null,
   playTimer: null,
+  workloadSource: 'assignment',
+  customJobs: null,
+  activeWorkload: defaultWorkload,
+  isCustomWorkloadOpen: false,
 
   setLocation: (id) => set({ location: id }),
   setViewMode: (mode) => set({ viewMode: mode }),
@@ -132,6 +180,8 @@ export const useSimStore = create<SimState>((set, get) => ({
   },
   setSelectedBlock: (i) => set({ selectedBlockIndex: i }),
   setCursor: (index) => set({ cursor: index }),
+  openCustomWorkload: () => set({ isCustomWorkloadOpen: true }),
+  closeCustomWorkload: () => set({ isCustomWorkloadOpen: false }),
 
   getSnapshot: () => {
     const { snapshots, cursor } = get();
@@ -141,42 +191,110 @@ export const useSimStore = create<SimState>((set, get) => ({
   },
 
   appendEvent: (event) => {
-    set((s) => ({
-      events: [...s.events, event],
-      oracleMessage: renderOracle(event)
-    }));
+    set((s) => {
+      if (s.events.some((e) => e.seq === event.seq)) {
+        return s;
+      }
+      const next = [...s.events, event].sort((a, b) => a.seq - b.seq);
+      return {
+        events: next,
+        oracleMessage: renderOracle(event)
+      };
+    });
+  },
+
+  syncEvents: async () => {
+    const { sessionId } = get();
+    if (!sessionId) return;
+    try {
+      const res = await api.getEvents(sessionId);
+      if (res && res.data && Array.isArray(res.data)) {
+        set((s) => {
+          const existingSeqs = new Set(s.events.map((e) => e.seq));
+          const newEvents = res.data.filter((e) => !existingSeqs.has(e.seq));
+          if (newEvents.length === 0) return s;
+          const merged = [...s.events, ...newEvents].sort((a, b) => a.seq - b.seq);
+          return {
+            events: merged,
+            oracleMessage: merged.length > 0 ? renderOracle(merged[merged.length - 1]) : s.oracleMessage
+          };
+        });
+      }
+    } catch {
+      // Best-effort sync
+    }
+  },
+
+  ensureSession: async () => {
+    const { sessionId } = get();
+    if (sessionId) return sessionId;
+    if (initPromise) {
+      return initPromise;
+    }
+    await get().createSession();
+    return get().sessionId;
   },
 
   createSession: async (partial = {}) => {
-    const prev = get();
-    prev.pause();
-    if (prev.eventSource) prev.eventSource.close();
-    if (prev.sessionId) {
-      await api.deleteSession(prev.sessionId).catch(() => undefined);
+    if (initPromise) {
+      await initPromise;
+      if (Object.keys(partial).length === 0) {
+        return;
+      }
     }
 
-    const config = { ...defaultConfig, ...prev.config, ...partial };
-    const res = await api.createSession(config);
-    const sessionId = res.data.id;
-    const es = attachEventStream(sessionId, (e) => get().appendEvent(e));
+    set({ isInitializing: true, error: null });
 
-    set({
-      sessionId,
-      config: res.data.config ?? config,
-      events: [],
-      snapshots: [],
-      cursor: -1,
-      error: null,
-      eventSource: es,
-      compareResults: null,
-      strategyViews: null,
-      oracleMessage: `Session ${sessionId.slice(0, 8)}… ready (${config.policy}).`
-    });
+    const run = async (): Promise<string | null> => {
+      try {
+        const prev = get();
+        prev.pause();
+        if (prev.eventSource) prev.eventSource.close();
+        if (prev.sessionId) {
+          await api.deleteSession(prev.sessionId).catch(() => undefined);
+        }
 
-    await get().refreshSnapshot();
+        const config = { ...defaultConfig, ...prev.config, ...partial };
+        const res = await api.createSession(config);
+        const sessionId = res.data.id;
+        const es = attachEventStream(sessionId, (e) => get().appendEvent(e));
+
+        set({
+          sessionId,
+          config: res.data.config ?? config,
+          events: [],
+          snapshots: [],
+          cursor: -1,
+          error: null,
+          eventSource: es,
+          compareResults: null,
+          strategyViews: null,
+          oracleMessage: `Session ${sessionId.slice(0, 8)}… ready (${config.policy}).`
+        });
+
+        await get().refreshSnapshot();
+        await get().syncEvents();
+        return sessionId;
+      } finally {
+        set({ isInitializing: false });
+        initPromise = null;
+      }
+    };
+
+    initPromise = run();
+    try {
+      await initPromise;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      set({ error: message, sessionId: null });
+      throw err;
+    }
   },
 
   destroySession: async () => {
+    if (get().isInitializing) {
+      return;
+    }
     const { sessionId, eventSource, pause } = get();
     pause();
     if (eventSource) eventSource.close();
@@ -191,7 +309,10 @@ export const useSimStore = create<SimState>((set, get) => ({
   },
 
   sendCommand: async (payload) => {
-    const { sessionId } = get();
+    let sessionId = get().sessionId;
+    if (!sessionId) {
+      sessionId = await get().ensureSession();
+    }
     if (!sessionId) throw new Error('No active session');
     try {
       const res = await api.sendCommand(sessionId, payload);
@@ -208,6 +329,7 @@ export const useSimStore = create<SimState>((set, get) => ({
         payload.cmd === 'session.configure'
       ) {
         await get().refreshSnapshot();
+        void get().syncEvents();
       }
       return res.data;
     } catch (err) {
@@ -218,12 +340,104 @@ export const useSimStore = create<SimState>((set, get) => ({
   },
 
   loadAssignment: async () => {
+    // Restore 1024 MB memory capacity if it was altered by a custom workload
+    if (get().config.totalMemory !== 1024 || !get().sessionId) {
+      await get().createSession({ ...get().config, totalMemory: 1024 });
+    } else {
+      await get().sendCommand({
+        cmd: 'session.configure',
+        policy: get().config.policy,
+        quantum: get().config.quantum,
+        totalMemory: 1024,
+        demotionTrigger: get().config.demotionTrigger,
+        admissionOrdering: get().config.admissionOrdering
+      });
+    }
+
     await get().sendCommand({ cmd: 'workload.assignment' });
-    set({ oracleMessage: 'Assignment dataset loaded into the realm.' });
+    const workload: ActiveWorkloadConfig = {
+      source: 'assignment',
+      totalMemory: 1024,
+      quantum: 1
+    };
+    set({
+      activeWorkload: workload,
+      workloadSource: 'assignment',
+      customJobs: null,
+      config: { ...get().config, totalMemory: 1024 },
+      events: [],
+      snapshots: [],
+      cursor: -1,
+      compareResults: null,
+      strategyViews: null,
+      isCustomWorkloadOpen: false,
+      oracleMessage: 'Assignment dataset loaded into the realm (1024 MB restored).'
+    });
+    await get().refreshSnapshot();
+    await get().syncEvents();
   },
 
   loadRandom: async (seed = 1234, n = 8) => {
     await get().sendCommand({ cmd: 'workload.random', seed, n });
+    const workload: ActiveWorkloadConfig = {
+      source: 'random',
+      seed,
+      n,
+      totalMemory: get().config.totalMemory,
+      quantum: 1
+    };
+    set({
+      activeWorkload: workload,
+      workloadSource: 'random',
+      customJobs: null,
+      events: [],
+      snapshots: [],
+      cursor: -1,
+      compareResults: null,
+      strategyViews: null,
+      oracleMessage: `Random workload (${n} jobs, seed ${seed}) loaded into the realm.`
+    });
+    await get().refreshSnapshot();
+    await get().syncEvents();
+  },
+
+  loadCustomWorkload: async (jobs: Job[], totalMemory?: number) => {
+    const memory = totalMemory ?? get().config.totalMemory ?? 1024;
+    if (get().config.totalMemory !== memory || !get().sessionId) {
+      await get().createSession({ ...get().config, totalMemory: memory });
+    } else {
+      await get().sendCommand({
+        cmd: 'session.configure',
+        policy: get().config.policy,
+        quantum: get().config.quantum,
+        totalMemory: memory,
+        demotionTrigger: get().config.demotionTrigger,
+        admissionOrdering: get().config.admissionOrdering
+      });
+    }
+
+    await get().sendCommand({ cmd: 'workload.load', jobs });
+    const workload: ActiveWorkloadConfig = {
+      source: 'custom',
+      jobs: [...jobs],
+      totalMemory: memory,
+      quantum: 1
+    };
+    set({
+      activeWorkload: workload,
+      workloadSource: 'custom',
+      customJobs: [...jobs],
+      config: { ...get().config, totalMemory: memory },
+      events: [],
+      snapshots: [],
+      cursor: -1,
+      compareResults: null,
+      strategyViews: null,
+      isCustomWorkloadOpen: false,
+      oracleMessage: `Custom workload (${jobs.length} adventurers, ${memory} MB) loaded into the realm.`
+    });
+    await get().refreshSnapshot();
+    await get().syncEvents();
   },
 
   tick: async () => {
@@ -235,14 +449,73 @@ export const useSimStore = create<SimState>((set, get) => ({
   },
 
   reset: async () => {
-    await get().sendCommand({ cmd: 'sim.reset' });
-    set({ events: [], snapshots: [], cursor: -1 });
-    await get().refreshSnapshot();
+    get().pause();
+    const { sessionId, eventSource } = get();
+    if (eventSource) eventSource.close();
+    if (sessionId) {
+      await api.deleteSession(sessionId).catch(() => undefined);
+    }
+    set({
+      sessionId: null,
+      eventSource: null,
+      activeWorkload: null,
+      workloadSource: 'assignment',
+      customJobs: null,
+      events: [],
+      snapshots: [],
+      cursor: -1,
+      compareResults: null,
+      strategyViews: null,
+      selectedBlockIndex: null,
+      isCustomWorkloadOpen: false,
+      oracleMessage: 'No active dataset. Create a new dataset or load the assignment dataset to begin.'
+    });
   },
 
   restart: async () => {
-    const { config } = get();
-    await get().createSession(config);
+    get().pause();
+    const { activeWorkload, config } = get();
+    if (!activeWorkload) return;
+    const targetMemory = activeWorkload.totalMemory ?? config.totalMemory ?? 1024;
+    const targetQuantum = activeWorkload.quantum ?? 1;
+
+    // 1. Create fresh session with saved workload configuration
+    await get().createSession({
+      ...config,
+      totalMemory: targetMemory,
+      quantum: targetQuantum
+    });
+
+    // 2. Load the active workload into the fresh C engine session
+    if (activeWorkload.source === 'custom' && activeWorkload.jobs && activeWorkload.jobs.length > 0) {
+      await get().sendCommand({ cmd: 'workload.load', jobs: activeWorkload.jobs });
+    } else if (activeWorkload.source === 'random') {
+      await get().sendCommand({
+        cmd: 'workload.random',
+        seed: activeWorkload.seed ?? 1234,
+        n: activeWorkload.n ?? 8
+      });
+    } else {
+      await get().sendCommand({ cmd: 'workload.assignment' });
+    }
+
+    // 3. Reset all simulation state (time, allocations, process states, queues, events, stats)
+    set({
+      events: [],
+      snapshots: [],
+      cursor: -1,
+      compareResults: null,
+      strategyViews: null,
+      isCustomWorkloadOpen: false,
+      oracleMessage:
+        activeWorkload.source === 'custom' && activeWorkload.jobs
+          ? `Simulation restarted with active custom workload (${activeWorkload.jobs.length} adventurers, ${targetMemory} MB).`
+          : 'Simulation restarted with assignment dataset.'
+    });
+
+    // 4. Retrieve initial snapshot and sync
+    await get().refreshSnapshot();
+    await get().syncEvents();
   },
 
   refreshSnapshot: async () => {
@@ -262,8 +535,8 @@ export const useSimStore = create<SimState>((set, get) => ({
   },
 
   start: () => {
-    const { playing, playTimer, speed } = get();
-    if (playing) return;
+    const { playing, playTimer, speed, sessionId, activeWorkload } = get();
+    if (playing || !sessionId || !activeWorkload) return;
     if (playTimer) clearInterval(playTimer);
     const timer = setInterval(() => {
       void get().tick().catch(() => get().pause());
@@ -278,40 +551,77 @@ export const useSimStore = create<SimState>((set, get) => ({
   },
 
   exportReport: async (format) => {
-    const { sessionId } = get();
+    let sessionId = get().sessionId;
+    if (!sessionId) {
+      sessionId = await get().ensureSession();
+    }
     if (!sessionId) throw new Error('No active session');
     return api.getReport(sessionId, format);
   },
 
   runCompare: async () => {
     set({ error: null });
-    const compare = await api.runCompare();
+    const { activeWorkload, config } = get();
+    const isCustom = activeWorkload?.source === 'custom' && Boolean(activeWorkload.jobs && activeWorkload.jobs.length > 0);
+    const jobs = isCustom ? activeWorkload.jobs : undefined;
+    const totalMemory = isCustom ? (activeWorkload.totalMemory || config.totalMemory || 1024) : 1024;
+
+    const compare = await api.runCompare(jobs, totalMemory);
     const policies: Policy[] = ['first_fit', 'next_fit', 'best_fit', 'worst_fit'];
     const views: PolicyMidRunView[] = [];
-    for (const policy of policies) {
-      const snap = await api.fetchPolicySnapshotAt(policy);
-      const offsets: Record<string, number> = {};
-      if (snap && snap.processes) {
-        for (const p of snap.processes) {
-          if (p.pid >= 6 && p.pid <= 8) offsets[p.name] = p.offset;
+
+    if (isCustom && jobs) {
+      for (const policy of policies) {
+        const snap = await api.fetchCustomPolicySnapshot(policy, jobs, totalMemory);
+        const offsets: Record<string, number> = {};
+        if (snap && snap.processes) {
+          for (const p of snap.processes) {
+            offsets[p.name] = p.offset;
+          }
+        }
+        if (snap && snap.arena) {
+          views.push({
+            policy,
+            t: snap.t,
+            nextFitOffset: snap.arena.nextFitOffset,
+            offsets,
+            blocks: snap.arena.blocks,
+            statistics: snap.arena.statistics
+          });
         }
       }
-      if (snap && snap.arena) {
-        views.push({
-          policy,
-          t: snap.t,
-          nextFitOffset: snap.arena.nextFitOffset,
-          offsets,
-          blocks: snap.arena.blocks,
-          statistics: snap.arena.statistics
-        });
+      set({
+        compareResults: compare.data.results,
+        strategyViews: views,
+        oracleMessage: 'Custom workload strategy comparison complete (engine-sourced).'
+      });
+    } else {
+      for (const policy of policies) {
+        const snap = await api.fetchPolicySnapshotAt(policy);
+        const offsets: Record<string, number> = {};
+        if (snap && snap.processes) {
+          for (const p of snap.processes) {
+            if (p.pid >= 6 && p.pid <= 8) offsets[p.name] = p.offset;
+          }
+        }
+        if (snap && snap.arena) {
+          views.push({
+            policy,
+            t: snap.t,
+            nextFitOffset: snap.arena.nextFitOffset,
+            offsets,
+            blocks: snap.arena.blocks,
+            statistics: snap.arena.statistics,
+            steps: snap.steps
+          });
+        }
       }
+      set({
+        compareResults: compare.data.results,
+        strategyViews: views,
+        oracleMessage: 'Strategy Room comparison complete (engine-sourced).'
+      });
     }
-    set({
-      compareResults: compare.data.results,
-      strategyViews: views,
-      oracleMessage: 'Strategy Room comparison complete (engine-sourced).'
-    });
   },
 
   setPolicy: async (policy) => {

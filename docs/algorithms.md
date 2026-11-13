@@ -52,3 +52,4 @@ On the reference assignment workload (P0–P8, 1024 MB):
   - **Best Fit**: P6 $\rightarrow$ offset 672, P7 $\rightarrow$ offset 224, P8 $\rightarrow$ offset 480.
   - **Worst Fit**: P6 $\rightarrow$ offset 224, P7 $\rightarrow$ offset 332, P8 $\rightarrow$ offset 0.
 - All derived layouts match **G2** and **G3** exactly.
+

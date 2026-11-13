@@ -24,3 +24,4 @@ In accordance with Master Build Prompt v3 Rule 6, all engineering boundaries, in
   - The four resource columns in the assignment workload (printers, scanners, modems, CDs) are parsed, validated, stored, and displayed in the UI, but do not constrain process scheduling because the assignment specification provides no fixed resource pool capacities.
 - **History Rewind vs Live POSIX Dispatching (D6)**:
   - In deterministic simulation mode, stepping backwards (`sim.seek`) restores exact historical memory snapshots. In real Linux POSIX process execution mode, historical snapshots are inspectable, but real completed processes cannot be "un-executed" backwards in time.
+

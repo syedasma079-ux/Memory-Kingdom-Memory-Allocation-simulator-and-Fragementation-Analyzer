@@ -165,6 +165,61 @@ describe('Phase 4: Node.js / Express API Integration Tests', () => {
     expect(snap.arena.statistics.dragonPower).toBe(snap.arena.statistics.externalFragmentation);
   });
 
+  it('Custom Workload & Variable Memory: loads custom jobs and runs simulation through C engine', async () => {
+    const customSessionRes = await request(app)
+      .post('/api/sessions')
+      .send({ policy: 'first_fit', quantum: 1, totalMemory: 512 });
+    expect(customSessionRes.status).toBe(201);
+    const customId = customSessionRes.body.data.id;
+
+    // Load custom workload
+    const jobs = [
+      { arrival: 0, priority: 1, cpuBurst: 2, memMb: 128, name: 'P0' },
+      { arrival: 0, priority: 2, cpuBurst: 3, memMb: 192, name: 'P1' }
+    ];
+    const loadRes = await request(app)
+      .post(`/api/sessions/${customId}/commands`)
+      .send({ cmd: 'workload.load', jobs });
+    expect(loadRes.status).toBe(200);
+    expect(loadRes.body.ok).toBe(true);
+    expect(loadRes.body.data.jobCount).toBe(2);
+
+    // Run simulation to completion
+    const runRes = await request(app)
+      .post(`/api/sessions/${customId}/commands`)
+      .send({ cmd: 'sim.run', untilT: -1 });
+    expect(runRes.status).toBe(200);
+    expect(runRes.body.data.isFinished).toBe(true);
+
+    // Verify snapshot
+    const snapRes = await request(app).get(`/api/sessions/${customId}/snapshot`);
+    expect(snapRes.status).toBe(200);
+    const snap = snapRes.body.data;
+    expect(snap.arena.total).toBe(512);
+    expect(snap.processes).toHaveLength(2);
+    expect(snap.processes[0].state).toBe('TERMINATED');
+    expect(snap.processes[1].state).toBe('TERMINATED');
+
+    await request(app).delete(`/api/sessions/${customId}`);
+  });
+
+  it('POST /api/compare with custom jobs and totalMemory compares all 4 algorithms on identical custom workload', async () => {
+    const jobs = [
+      { arrival: 0, priority: 1, cpuBurst: 2, memMb: 128 },
+      { arrival: 1, priority: 2, cpuBurst: 2, memMb: 64 }
+    ];
+    const res = await request(app)
+      .post('/api/compare')
+      .send({ jobs, totalMemory: 512 });
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+    expect(res.body.data.results).toHaveLength(4);
+    for (const r of res.body.data.results) {
+      expect(r.makespan).toBeGreaterThan(0);
+      expect(r.totalFree).toBeLessThanOrEqual(512);
+    }
+  });
+
   it('DELETE /api/sessions/:id should delete the session and terminate child C process', async () => {
     const res = await request(app).delete(`/api/sessions/${sessionId}`);
     expect(res.status).toBe(200);

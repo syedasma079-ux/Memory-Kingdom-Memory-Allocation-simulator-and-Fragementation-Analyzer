@@ -79,3 +79,4 @@ Executed after every mutation in test builds and when `MEMK_PARANOID=1`:
   - Tier 3: Enraged ($55\% \le \text{frag} < 80\%$)
   - Tier 4: Inferno ($\ge 80\%$)
 - $\text{cracks} = \max(0, \text{freeBlockCount} - 1)$.
+

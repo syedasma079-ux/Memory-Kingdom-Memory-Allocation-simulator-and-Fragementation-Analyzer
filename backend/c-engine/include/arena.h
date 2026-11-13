@@ -77,6 +77,8 @@ typedef struct {
     double dragonPower;
     int dragonTier;
     int cracks;
+    int internalFragmentation;
+    double allocationEfficiency;
 } ArenaStatistics;
 
 typedef struct {

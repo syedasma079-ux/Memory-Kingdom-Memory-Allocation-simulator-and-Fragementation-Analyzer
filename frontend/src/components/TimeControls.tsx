@@ -11,10 +11,18 @@ export function TimeControls() {
   const restart = useSimStore((s) => s.restart);
   const setSpeed = useSimStore((s) => s.setSpeed);
   const loadAssignment = useSimStore((s) => s.loadAssignment);
+  const openCustomWorkload = useSimStore((s) => s.openCustomWorkload);
   const exportReport = useSimStore((s) => s.exportReport);
   const cursor = useSimStore((s) => s.cursor);
   const snapshots = useSimStore((s) => s.snapshots);
   const setCursor = useSimStore((s) => s.setCursor);
+  const sessionId = useSimStore((s) => s.sessionId);
+  const isInitializing = useSimStore((s) => s.isInitializing);
+  const activeWorkload = useSimStore((s) => s.activeWorkload);
+
+  const isReady = Boolean(sessionId && !isInitializing);
+  const hasWorkload = Boolean(activeWorkload);
+  const canRun = isReady && hasWorkload;
 
   const onExport = async (format: 'json' | 'md' | 'csv') => {
     const text = await exportReport(format);
@@ -36,19 +44,49 @@ export function TimeControls() {
         t = {snap?.t ?? 0}
       </span>
       <span className="label-chip">seq = {snap?.seq ?? 0}</span>
-      <button type="button" className="btn" data-testid="ctrl-start" onClick={start} disabled={playing}>
+      <button
+        type="button"
+        className="btn"
+        data-testid="ctrl-start"
+        onClick={start}
+        disabled={!canRun || playing}
+      >
         Start
       </button>
-      <button type="button" className="btn" data-testid="ctrl-pause" onClick={pause} disabled={!playing}>
+      <button
+        type="button"
+        className="btn"
+        data-testid="ctrl-pause"
+        onClick={pause}
+        disabled={!canRun || !playing}
+      >
         Pause
       </button>
-      <button type="button" className="btn" data-testid="ctrl-tick" onClick={() => void tick()}>
+      <button
+        type="button"
+        className="btn"
+        data-testid="ctrl-tick"
+        onClick={() => void tick()}
+        disabled={!canRun || playing}
+      >
         Step Tick
       </button>
-      <button type="button" className="btn" data-testid="ctrl-reset" onClick={() => void reset()}>
+      <button
+        type="button"
+        className="btn"
+        data-testid="ctrl-reset"
+        onClick={() => void reset()}
+        disabled={isInitializing}
+      >
         Reset
       </button>
-      <button type="button" className="btn" data-testid="ctrl-restart" onClick={() => void restart()}>
+      <button
+        type="button"
+        className="btn"
+        data-testid="ctrl-restart"
+        onClick={() => void restart()}
+        disabled={!hasWorkload || isInitializing}
+      >
         Restart
       </button>
       {([1, 2, 4] as const).map((s) => (
@@ -59,20 +97,54 @@ export function TimeControls() {
           data-testid={`ctrl-speed-${s}`}
           aria-pressed={speed === s}
           onClick={() => setSpeed(s)}
+          disabled={!isReady}
         >
           {s}x
         </button>
       ))}
-      <button type="button" className="btn" data-testid="ctrl-load-assignment" onClick={() => void loadAssignment()}>
+      <button
+        type="button"
+        className="btn"
+        data-testid="ctrl-load-assignment"
+        onClick={() => void loadAssignment()}
+        disabled={isInitializing}
+      >
         Load sample
       </button>
-      <button type="button" className="btn" data-testid="ctrl-export-json" onClick={() => void onExport('json')}>
+      <button
+        type="button"
+        className="btn border-gold-2 text-gold-2 hover:bg-gold-2/20"
+        data-testid="ctrl-create-dataset"
+        onClick={openCustomWorkload}
+        disabled={isInitializing}
+      >
+        Create Dataset
+      </button>
+      <button
+        type="button"
+        className="btn"
+        data-testid="ctrl-export-json"
+        onClick={() => void onExport('json')}
+        disabled={!isReady}
+      >
         Export JSON
       </button>
-      <button type="button" className="btn" data-testid="ctrl-export-md" onClick={() => void onExport('md')}>
+      <button
+        type="button"
+        className="btn"
+        data-testid="ctrl-export-md"
+        onClick={() => void onExport('md')}
+        disabled={!isReady}
+      >
         Export MD
       </button>
-      <button type="button" className="btn" data-testid="ctrl-export-csv" onClick={() => void onExport('csv')}>
+      <button
+        type="button"
+        className="btn"
+        data-testid="ctrl-export-csv"
+        onClick={() => void onExport('csv')}
+        disabled={!isReady}
+      >
         Export CSV
       </button>
       {snapshots.length > 0 && (
@@ -85,6 +157,7 @@ export function TimeControls() {
             max={Math.max(0, snapshots.length - 1)}
             value={cursor < 0 ? snapshots.length - 1 : cursor}
             onChange={(e) => setCursor(Number(e.target.value))}
+            disabled={!isReady}
           />
         </label>
       )}

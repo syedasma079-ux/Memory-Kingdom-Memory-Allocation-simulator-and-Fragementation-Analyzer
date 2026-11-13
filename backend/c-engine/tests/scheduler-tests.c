@@ -240,6 +240,71 @@ static int test_protocol_line_execution(void) {
     return 1;
 }
 
+/* ------------------------------------------------------------- */
+/* 5. Custom Workload & Variable Memory Capacity Test            */
+/* ------------------------------------------------------------- */
+static int test_custom_workload_and_variable_capacity(void) {
+    ProtocolSession ps;
+    protocolSessionInit(&ps);
+
+    FILE *tmpOut = tmpfile();
+    TEST_ASSERT(tmpOut != NULL, "tmpfile created");
+
+    /* 1. Configure session with custom total memory (e.g. 512 MB) */
+    protocolProcessLine(&ps, "{\"id\":10,\"cmd\":\"session.configure\",\"policy\":\"best_fit\",\"totalMemory\":512}", tmpOut);
+    TEST_ASSERT(ps.scheduler.config.totalMemory == 512, "configured 512MB capacity");
+    TEST_ASSERT(ps.scheduler.arena.total == 512, "arena total is 512MB");
+
+    /* 2. Reject process exceeding configured capacity */
+    protocolProcessLine(&ps, "{\"id\":11,\"cmd\":\"workload.load\",\"jobs\":[{\"arrival\":0,\"priority\":1,\"cpuBurst\":2,\"memMb\":600}]}", tmpOut);
+    TEST_ASSERT(ps.scheduler.processCount == 0, "process exceeding capacity rejected");
+
+    /* 3. Successfully load valid custom processes */
+    const char *customWorkloadJson =
+        "{\"id\":12,\"cmd\":\"workload.load\",\"jobs\":["
+        "{\"arrival\":0,\"priority\":1,\"cpuBurst\":2,\"memMb\":128,\"name\":\"P0\"},"
+        "{\"arrival\":1,\"priority\":2,\"cpuBurst\":3,\"memMb\":256,\"name\":\"P1\"},"
+        "{\"arrival\":2,\"priority\":3,\"cpuBurst\":1,\"memMb\":64,\"name\":\"P2\"}"
+        "]}";
+    protocolProcessLine(&ps, customWorkloadJson, tmpOut);
+    TEST_ASSERT(ps.scheduler.processCount == 3, "3 custom processes loaded");
+    TEST_ASSERT(strcmp(ps.scheduler.processes[0].name, "P0") == 0, "name P0 preserved");
+    TEST_ASSERT(ps.scheduler.processes[0].memMb == 128, "memMb is 128");
+    TEST_ASSERT(ps.scheduler.processes[1].memMb == 256, "memMb is 256");
+    TEST_ASSERT(ps.scheduler.processes[2].memMb == 64, "memMb is 64");
+
+    /* 4. Run simulation to completion */
+    protocolProcessLine(&ps, "{\"id\":13,\"cmd\":\"sim.run\",\"untilT\":-1}", tmpOut);
+    TEST_ASSERT(ps.scheduler.isFinished, "simulation finished");
+    TEST_ASSERT(ps.scheduler.processes[0].state == STATE_TERMINATED, "P0 terminated");
+    TEST_ASSERT(ps.scheduler.processes[1].state == STATE_TERMINATED, "P1 terminated");
+    TEST_ASSERT(ps.scheduler.processes[2].state == STATE_TERMINATED, "P2 terminated");
+
+    /* 5. Compare 4 algorithms on custom workload */
+    PolicyCompareResult results[4];
+    Process customProcs[3] = {
+        { .arrival = 0, .priority = 1, .cpuBurst = 2, .memMb = 128 },
+        { .arrival = 1, .priority = 2, .cpuBurst = 3, .memMb = 256 },
+        { .arrival = 2, .priority = 3, .cpuBurst = 1, .memMb = 64 }
+    };
+    SchedulerConfig compareCfg = {
+        .policy = POLICY_FIRST_FIT,
+        .quantum = 1,
+        .totalMemory = 512,
+        .demotionTrigger = DEMOTE_ALWAYS,
+        .admissionOrdering = ADMISSION_FIFO_BLOCK
+    };
+    schedulerCompareRun(customProcs, 3, &compareCfg, results);
+    for (int p = 0; p < 4; p++) {
+        TEST_ASSERT(results[p].makespan > 0, "makespan > 0 for each policy");
+        TEST_ASSERT(results[p].totalFree <= 512, "total free <= 512");
+    }
+
+    fclose(tmpOut);
+    protocolSessionDestroy(&ps);
+    return 1;
+}
+
 int main(void) {
     printf("===========================================\n");
     printf(" MEMORY KINGDOM: Scheduler Core Test Suite \n");
@@ -249,6 +314,7 @@ int main(void) {
     RUN_TEST(test_head_of_line_blocking);
     RUN_TEST(test_golden_under_asm_options);
     RUN_TEST(test_protocol_line_execution);
+    RUN_TEST(test_custom_workload_and_variable_capacity);
 
     printf("===========================================\n");
     printf("Results: %d/%d tests passed.\n", g_tests_passed, g_tests_run);

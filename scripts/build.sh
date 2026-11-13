@@ -21,3 +21,4 @@ echo ">>> 3. Building React frontend..."
 echo "=========================================="
 echo " BUILD ALL SUCCESSFUL"
 echo "=========================================="
+

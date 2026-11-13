@@ -98,12 +98,13 @@ export class SessionManager {
   public addSseClient(session: Session, res: Response, lastEventId?: number): void {
     session.sseClients.push(res);
 
-    // If Last-Event-ID provided, replay events with seq > lastEventId
-    if (typeof lastEventId === 'number' && !isNaN(lastEventId)) {
-      const replay = session.events.filter(e => e.seq > lastEventId);
-      for (const e of replay) {
-        res.write(`id: ${e.seq}\nevent: ${e.kind}\ndata: ${JSON.stringify(e)}\n\n`);
-      }
+    // Replay events: if Last-Event-ID provided, replay seq > lastEventId;
+    // if initial connection (no lastEventId), replay all accumulated events so client has full history
+    const replay = typeof lastEventId === 'number' && !isNaN(lastEventId)
+      ? session.events.filter(e => e.seq > lastEventId)
+      : session.events;
+    for (const e of replay) {
+      res.write(`id: ${e.seq}\nevent: ${e.kind}\ndata: ${JSON.stringify(e)}\n\n`);
     }
 
     reqCloseCleanup: {

@@ -39,6 +39,8 @@ export function generateReport(session: Session, snapshot: EngineSnapshot, forma
     lines.push(`Stats,FreeMB,${snapshot.arena.statistics.free}`);
     lines.push(`Stats,UtilizationPct,${snapshot.arena.statistics.utilization}`);
     lines.push(`Stats,ExternalFragmentationPct,${snapshot.arena.statistics.externalFragmentation}`);
+    lines.push(`Stats,InternalFragmentationMB,${snapshot.arena.statistics.internalFragmentation ?? 0}`);
+    lines.push(`Stats,AllocationEfficiencyPct,${snapshot.arena.statistics.allocationEfficiency ?? 100}`);
     lines.push(`Stats,LargestFreeMB,${snapshot.arena.statistics.largestFree}`);
     lines.push(`Stats,TotalSearchSteps,${snapshot.arena.statistics.searchSteps}`);
     return lines.join('\n');
@@ -53,6 +55,8 @@ export function generateReport(session: Session, snapshot: EngineSnapshot, forma
   md += `- **Allocated**: ${snapshot.arena.statistics.allocated} MB (${snapshot.arena.statistics.utilization.toFixed(2)}% utilization)\n`;
   md += `- **Free**: ${snapshot.arena.statistics.free} MB (Largest Free: ${snapshot.arena.statistics.largestFree} MB)\n`;
   md += `- **External Fragmentation**: ${snapshot.arena.statistics.externalFragmentation.toFixed(2)}%\n`;
+  md += `- **Internal Fragmentation**: ${snapshot.arena.statistics.internalFragmentation ?? 0} MB (Unused space inside allocated blocks)\n`;
+  md += `- **Allocation Efficiency**: ${(snapshot.arena.statistics.allocationEfficiency ?? 100).toFixed(2)}%\n`;
   md += `- **Dragon Power**: ${snapshot.arena.statistics.dragonPower.toFixed(2)}% (Tier ${snapshot.arena.statistics.dragonTier})\n`;
   md += `- **Total Search Steps**: ${snapshot.arena.statistics.searchSteps}\n\n`;
   md += `## Assumptions Verification Register\n\n`;

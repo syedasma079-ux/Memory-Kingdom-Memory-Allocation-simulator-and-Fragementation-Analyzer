@@ -205,7 +205,11 @@ int schedulerLoadWorkload(Scheduler *s, const Process *procs, int count) {
         }
         s->processes[i] = procs[i];
         s->processes[i].pid = i;
-        snprintf(s->processes[i].name, sizeof(s->processes[i].name), "P%d", i);
+        if (procs[i].name[0] != '\0') {
+            snprintf(s->processes[i].name, sizeof(s->processes[i].name), "%s", procs[i].name);
+        } else {
+            snprintf(s->processes[i].name, sizeof(s->processes[i].name), "P%d", i);
+        }
         s->processes[i].remaining = procs[i].cpuBurst;
         s->processes[i].offset = -1;
         s->processes[i].state = STATE_NOT_ARRIVED;

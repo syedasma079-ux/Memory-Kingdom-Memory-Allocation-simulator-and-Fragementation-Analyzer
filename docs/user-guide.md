@@ -53,3 +53,4 @@ Open your browser to:
 - **Reset**: Revert the arena and scheduler back to tick 0.
 - **Speed Slider**: Accelerate playback at 1x (1000ms), 2x (500ms), or 4x (250ms).
 - **Time Scrubber**: Scrub backwards through recorded snapshots for read-only historical inspection.
+

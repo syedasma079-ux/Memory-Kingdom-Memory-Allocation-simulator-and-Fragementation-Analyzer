@@ -31,6 +31,16 @@ export function FragmentationDungeon() {
           <Stat label="free" value={`${st.free} MB`} />
           <Stat label="largestFree" value={`${st.largestFree} MB`} />
           <Stat label="externalFragmentation" value={`${st.externalFragmentation}%`} />
+          <Stat
+            label="internalFragmentation"
+            value={`${st.internalFragmentation ?? 0} MB`}
+            testId="internal-fragmentation"
+          />
+          <Stat
+            label="allocationEfficiency"
+            value={`${(st.allocationEfficiency ?? 100).toFixed(1)}%`}
+            testId="allocation-efficiency"
+          />
           <Stat label="dragonPower" value={`${st.dragonPower}`} testId="dragon-power" />
           <Stat
             label="dragonTier"
@@ -48,6 +58,44 @@ export function FragmentationDungeon() {
       ) : (
         <p className="text-sm text-stone-2">No statistics yet.</p>
       )}
+
+      {/* Side-by-side Fragmentation Anatomy Comparison */}
+      <div className="grid gap-3 md:grid-cols-2" data-testid="fragmentation-comparison">
+        <div className="panel border border-ember-2 bg-ink-1/80 p-3">
+          <div className="flex items-center justify-between">
+            <h3 className="font-pixel text-[10px] text-ember-3">External Fragmentation</h3>
+            <span className="rounded bg-ember-0 px-2 py-0.5 font-mono text-xs text-ember-3">
+              {st?.externalFragmentation ?? 0}%
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-stone-2">
+            Free memory shattered into non-contiguous holes. Even if total free memory is sufficient,
+            no single hole can fulfill larger allocation requests. This feeds the Dragon of Fragmentation.
+          </p>
+          <div className="mt-2 flex items-center gap-2 font-mono text-[11px] text-stone-3">
+            <span>Free Chambers: <strong className="text-stone-1">{st?.freeBlockCount ?? 0}</strong></span>
+            <span>·</span>
+            <span>Largest Hole: <strong className="text-stone-1">{st?.largestFree ?? 0} MB</strong></span>
+          </div>
+        </div>
+
+        <div className="panel border border-gold-2 bg-ink-1/80 p-3">
+          <div className="flex items-center justify-between">
+            <h3 className="font-pixel text-[10px] text-gold-2">Internal Fragmentation</h3>
+            <span className="rounded bg-gold-0 px-2 py-0.5 font-mono text-xs text-gold-3" data-testid="internal-frag-pill">
+              {st?.internalFragmentation ?? 0} MB
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-stone-2">
+            Unused memory trapped inside allocated blocks. In Memory Kingdom, the C allocator performs exact-size block splitting, leaving 0 MB internal fragmentation and maximizing allocation efficiency.
+          </p>
+          <div className="mt-2 flex items-center gap-2 font-mono text-[11px] text-stone-3">
+            <span>Efficiency: <strong className="text-grass-3" data-testid="efficiency-stat">{(st?.allocationEfficiency ?? 100).toFixed(1)}%</strong></span>
+            <span>·</span>
+            <span>Wasted in Blocks: <strong className="text-stone-1">{st?.internalFragmentation ?? 0} MB</strong></span>
+          </div>
+        </div>
+      </div>
 
       <div>
         <h3 className="font-pixel text-[9px] text-ember-3">Free chambers</h3>

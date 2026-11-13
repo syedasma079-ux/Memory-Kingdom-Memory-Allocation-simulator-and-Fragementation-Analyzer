@@ -107,21 +107,43 @@ static void emitSnapshotJson(const Scheduler *s, FILE *f) {
             s->arena.total, s->arena.nextFitOffset);
     const Mab *b = s->arena.head;
     bool firstBlock = true;
+    int calculatedInternalFrag = 0;
     while (b != NULL) {
         int pid = -1;
+        int reqSize = 0;
         if (b->allocated) {
             pid = schedulerGetProcessPidByOffset(s, b->offset);
+            if (pid >= 0) {
+                for (int pi = 0; pi < s->processCount; pi++) {
+                    if (s->processes[pi].pid == pid) {
+                        reqSize = s->processes[pi].memMb;
+                        break;
+                    }
+                }
+            }
+            if (reqSize <= 0) {
+                reqSize = b->size;
+            }
+            if (b->size > reqSize) {
+                calculatedInternalFrag += (b->size - reqSize);
+            }
         }
-        fprintf(f, "%s{\"offset\":%d,\"size\":%d,\"allocated\":%s,\"pid\":%d}",
-                firstBlock ? "" : ",", b->offset, b->size, b->allocated ? "true" : "false", pid);
+        fprintf(f, "%s{\"offset\":%d,\"size\":%d,\"allocated\":%s,\"pid\":%d,\"requestedSize\":%d}",
+                firstBlock ? "" : ",", b->offset, b->size, b->allocated ? "true" : "false", pid, reqSize);
         firstBlock = false;
         b = b->next;
     }
-    fprintf(f, "],\"statistics\":{\"total\":%d,\"allocated\":%d,\"free\":%d,\"freeBlockCount\":%d,\"largestFree\":%d,\"smallestFree\":%d,\"utilization\":%.2f,\"externalFragmentation\":%.2f,\"isExternalFragUndefined\":%s,\"largestFreePctOfTotal\":%.2f,\"failedAttempts\":%d,\"processesDelayed\":%d,\"searchSteps\":%d,\"dragonPower\":%.2f,\"dragonTier\":%d,\"cracks\":%d}},",
+
+    int internalFragMb = calculatedInternalFrag;
+    double allocEfficiency = (st.allocated > 0)
+        ? (((double)(st.allocated - internalFragMb) / (double)st.allocated) * 100.0)
+        : 100.0;
+
+    fprintf(f, "],\"statistics\":{\"total\":%d,\"allocated\":%d,\"free\":%d,\"freeBlockCount\":%d,\"largestFree\":%d,\"smallestFree\":%d,\"utilization\":%.2f,\"externalFragmentation\":%.2f,\"isExternalFragUndefined\":%s,\"largestFreePctOfTotal\":%.2f,\"failedAttempts\":%d,\"processesDelayed\":%d,\"searchSteps\":%d,\"dragonPower\":%.2f,\"dragonTier\":%d,\"cracks\":%d,\"internalFragmentation\":%d,\"allocationEfficiency\":%.2f}},",
             st.total, st.allocated, st.free, st.freeBlockCount, st.largestFree, st.smallestFree,
             st.utilization, st.externalFragmentation, st.isExternalFragUndefined ? "true" : "false",
             st.largestFreePctOfTotal, st.failedAttempts, st.processesDelayed, st.searchSteps,
-            st.dragonPower, st.dragonTier, st.cracks);
+            st.dragonPower, st.dragonTier, st.cracks, internalFragMb, allocEfficiency);
 
     /* Processes */
     fprintf(f, "\"processes\":[");
@@ -204,6 +226,71 @@ int protocolProcessLine(ProtocolSession *ps, const char *line, FILE *outStream) 
         schedulerLoadAssignmentDataset(&ps->scheduler);
         fprintf(outStream, "{\"type\":\"reply\",\"id\":%d,\"ok\":true,\"data\":{\"jobCount\":%d}}\n",
                 id, ps->scheduler.processCount);
+    } else if (strcmp(cmd, "workload.load") == 0) {
+        Process procs[MAX_PROCESSES];
+        int count = 0;
+        const char *jobs = strstr(line, "\"jobs\"");
+        const char *p = jobs ? strchr(jobs, '[') : NULL;
+        while (p != NULL && *p != '\0' && *p != ']' && count < MAX_PROCESSES) {
+            const char *obj = strchr(p, '{');
+            const char *arrEnd = strchr(p, ']');
+            if (obj == NULL || (arrEnd != NULL && arrEnd < obj)) {
+                break;
+            }
+            int arrival = 0;
+            int priority = 1;
+            int cpuBurst = 1;
+            int memMb = 0;
+            int printers = 0;
+            int scanners = 0;
+            int modems = 0;
+            int cds = 0;
+            char name[16] = {0};
+            extractIntField(obj, "arrival", &arrival);
+            extractIntField(obj, "priority", &priority);
+            extractIntField(obj, "cpuBurst", &cpuBurst);
+            extractIntField(obj, "memMb", &memMb);
+            extractIntField(obj, "printers", &printers);
+            extractIntField(obj, "scanners", &scanners);
+            extractIntField(obj, "modems", &modems);
+            extractIntField(obj, "cds", &cds);
+            extractStringField(obj, "name", name, sizeof(name));
+
+            memset(&procs[count], 0, sizeof(Process));
+            procs[count].arrival = arrival;
+            procs[count].priority = priority;
+            procs[count].cpuBurst = cpuBurst;
+            procs[count].memMb = memMb;
+            procs[count].printers = printers;
+            procs[count].scanners = scanners;
+            procs[count].modems = modems;
+            procs[count].cds = cds;
+            if (name[0] != '\0') {
+                snprintf(procs[count].name, sizeof(procs[count].name), "%s", name);
+            }
+            count++;
+
+            p = strchr(obj, '}');
+            if (p == NULL) {
+                break;
+            }
+            p++;
+        }
+
+        if (count <= 0) {
+            fprintf(outStream, "{\"type\":\"reply\",\"id\":%d,\"ok\":false,\"error\":\"workload.load requires at least one job\"}\n", id);
+        } else {
+            schedulerReset(&ps->scheduler);
+            int rc = schedulerLoadWorkload(&ps->scheduler, procs, count);
+            if (rc == 0) {
+                fprintf(outStream, "{\"type\":\"reply\",\"id\":%d,\"ok\":true,\"data\":{\"jobCount\":%d}}\n",
+                        id, ps->scheduler.processCount);
+            } else if (rc == -2) {
+                fprintf(outStream, "{\"type\":\"reply\",\"id\":%d,\"ok\":false,\"error\":\"Process memory request exceeds total arena capacity\"}\n", id);
+            } else {
+                fprintf(outStream, "{\"type\":\"reply\",\"id\":%d,\"ok\":false,\"error\":\"Failed to load workload\"}\n", id);
+            }
+        }
     } else if (strcmp(cmd, "workload.random") == 0) {
         int seed = 1234;
         int n = 8;

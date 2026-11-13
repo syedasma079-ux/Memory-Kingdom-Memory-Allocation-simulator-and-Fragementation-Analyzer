@@ -33,7 +33,8 @@ export const JobSchema = z.object({
   printers: z.number().int().nonnegative().default(0),
   scanners: z.number().int().nonnegative().default(0),
   modems: z.number().int().nonnegative().default(0),
-  cds: z.number().int().nonnegative().default(0)
+  cds: z.number().int().nonnegative().default(0),
+  name: z.string().max(15).optional()
 });
 export type Job = z.infer<typeof JobSchema>;
 
@@ -103,6 +104,7 @@ export interface BlockSnapshot {
   size: number;
   allocated: boolean;
   pid: number;
+  requestedSize?: number;
 }
 
 export interface ArenaStats {
@@ -122,6 +124,8 @@ export interface ArenaStats {
   dragonPower: number;
   dragonTier: number;
   cracks: number;
+  internalFragmentation?: number;
+  allocationEfficiency?: number;
 }
 
 export interface ProcessSnapshot {

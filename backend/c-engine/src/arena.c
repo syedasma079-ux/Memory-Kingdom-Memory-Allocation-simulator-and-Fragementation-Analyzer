@@ -479,6 +479,10 @@ void arenaGetStats(const Arena *a, ArenaStatistics *stats) {
     }
 
     stats->cracks = (stats->freeBlockCount > 1) ? (stats->freeBlockCount - 1) : 0;
+    stats->internalFragmentation = 0;
+    stats->allocationEfficiency = (stats->allocated > 0)
+        ? (((double)(stats->allocated - stats->internalFragmentation) / (double)stats->allocated) * 100.0)
+        : 100.0;
 }
 
 const char *policyToString(Policy p) {

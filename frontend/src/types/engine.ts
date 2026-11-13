@@ -42,11 +42,21 @@ export interface Job {
   name?: string;
 }
 
+export interface ActiveWorkloadConfig {
+  source: 'assignment' | 'custom' | 'random';
+  jobs?: Job[];
+  totalMemory: number;
+  quantum: number;
+  seed?: number;
+  n?: number;
+}
+
 export interface BlockSnapshot {
   offset: number;
   size: number;
   allocated: boolean;
   pid: number;
+  requestedSize?: number;
 }
 
 export interface ArenaStats {
@@ -66,6 +76,8 @@ export interface ArenaStats {
   dragonPower: number;
   dragonTier: number;
   cracks: number;
+  internalFragmentation?: number;
+  allocationEfficiency?: number;
 }
 
 export interface ProcessSnapshot {
@@ -129,6 +141,26 @@ export interface ComparePolicyResult {
   makespan: number;
 }
 
+export interface BlockExamined {
+  offset: number;
+  size: number;
+  verdict: 'accepted' | 'rejected' | 'skipped';
+}
+
+export interface AllocationStep {
+  step: number;
+  processName: string;
+  requestSize: number;
+  allocatedOffset: number | null;
+  allocatedSize: number | null;
+  freeBlocksBefore: Array<{ offset: number; size: number }>;
+  blocksExamined: BlockExamined[];
+  reason: string;
+  nextFitOffset: number;
+  statistics: ArenaStats;
+  blocks: BlockSnapshot[];
+}
+
 export interface PolicyMidRunView {
   policy: Policy;
   t: number;
@@ -136,6 +168,7 @@ export interface PolicyMidRunView {
   offsets: Record<string, number>;
   blocks: BlockSnapshot[];
   statistics: ArenaStats;
+  steps?: AllocationStep[];
 }
 
 export interface AssumptionRow {

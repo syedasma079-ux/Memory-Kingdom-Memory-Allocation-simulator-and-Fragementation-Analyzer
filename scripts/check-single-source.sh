@@ -10,6 +10,7 @@ echo "=== Running Single Source of Truth Checks ==="
 VIOLATIONS=$(grep -rnE "\b(memFree|memMerge|memSplit)\b" \
   --exclude-dir=tests \
   --exclude-dir=node_modules \
+  --exclude-dir=dist \
   --exclude-dir=.git \
   --exclude="arena.c" \
   --exclude="mab.c" \

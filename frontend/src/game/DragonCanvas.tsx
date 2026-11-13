@@ -84,10 +84,15 @@ export function DragonCanvas({ tier, power, cracks }: DragonCanvasProps) {
       ctx.fillStyle = '#8c8996';
       ctx.fillRect(w / 2 - 50, 126, 100, 6);
 
-      // 4. Render Dragon Sprite
-      const spriteId = TIER_SPRITES[Math.max(0, Math.min(tier, 4))] ?? 'dragon_tier0_sleeping';
-      const bob = reducedMotion ? 0 : Math.round(Math.sin(tick * 0.08) * (tier + 1));
-      drawSprite(ctx, spriteId, w / 2 - 48, 45 + bob, 2);
+      // 4. Render Dragon Sprite with Wing Flapping & Breathing Frames
+      const baseSpriteId = TIER_SPRITES[Math.max(0, Math.min(tier, 4))] ?? 'dragon_tier0_sleeping';
+      const isFrame2 = !reducedMotion && Math.floor(tick / 24) % 2 === 1;
+      const spriteId = isFrame2 ? `${baseSpriteId}_f2` : baseSpriteId;
+      const bob = reducedMotion ? 0 : Math.round(Math.sin(tick * 0.08) * (tier === 0 ? 0.5 : tier + 1));
+      const drawn = drawSprite(ctx, spriteId, w / 2 - 48, 38 + bob, 2);
+      if (!drawn) {
+        drawSprite(ctx, baseSpriteId, w / 2 - 48, 38 + bob, 2);
+      }
 
       // 5. Ambient Aura for Enraged & Inferno
       if (tier >= 3 && !reducedMotion) {
